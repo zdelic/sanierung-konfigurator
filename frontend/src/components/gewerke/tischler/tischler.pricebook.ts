@@ -1,5 +1,51 @@
 // tischler.pricebook.ts
 
+export type TischlerPriceBook = {
+  bestand: { title: string; description: string; ranges: RangePrice[] };
+
+  neu_eingang: LinePrice; // tier (single range)
+  neu_innentueren: LinePrice; // tier
+  neu_zargen: LinePrice; // tier
+
+  sanierung_2m2_simple: LinePrice;
+  aufzahlung_2m2_aufwendig: LinePrice;
+  sanierung_4m2_simple: LinePrice;
+  aufzahlung_4m2_aufwendig: LinePrice;
+
+  neu_innentueren_glasausschnitt: LinePrice;
+  innentuere_80x200: LinePrice;
+  zarge_80x200: LinePrice;
+
+  whg_eingang_h250: LinePrice;
+  whg_eingang_2fluegelig_h250: LinePrice;
+  balkon_bis3: LinePrice;
+  balkon_ueber3: LinePrice;
+  kasten_bis3: LinePrice;
+  kasten_3_5: LinePrice;
+  anstrich_eingang: LinePrice;
+  anstrich_balkon: LinePrice;
+  anstrich_kasten: LinePrice;
+};
+
+export const TISCHLER_QTY_KEYS = [
+  "sanierung_2m2_simple",
+  "aufzahlung_2m2_aufwendig",
+  "sanierung_4m2_simple",
+  "aufzahlung_4m2_aufwendig",
+  "neu_innentueren_glasausschnitt",
+  "innentuere_80x200",
+  "zarge_80x200",
+  "whg_eingang_h250",
+  "whg_eingang_2fluegelig_h250",
+  "balkon_bis3",
+  "balkon_ueber3",
+  "kasten_bis3",
+  "kasten_3_5",
+  "anstrich_eingang",
+  "anstrich_balkon",
+  "anstrich_kasten",
+] as const;
+
 export type RangePrice = {
   min: number | null;
   max: number | null;

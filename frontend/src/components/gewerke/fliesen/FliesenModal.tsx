@@ -1,5 +1,6 @@
 import Modal from "../../Modal";
-import { FLIESEN_PRICEBOOK, clamp0, formatEUR } from "./fliesen.pricebook";
+import type { ReactNode } from "react";
+import { clamp0, formatEUR, type FliesenPriceBook } from "./fliesen.pricebook";
 import { calcFliesenParts, type FliesenState } from "./fliesen.calc";
 import type { AbbruchState } from "../aabbruch/abbruch.calc";
 
@@ -31,7 +32,7 @@ function Card(props: {
   checked: boolean;
   price: number;
   onToggle: (v: boolean) => void;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
@@ -85,7 +86,7 @@ function QtyM2(props: {
       <div className="mt-2 flex items-center gap-2">
         <input
           type="number"
-          min={0}
+          min={1}
           step={0.1}
           value={props.value}
           onChange={(e) => props.onChange(clamp0(e.target.value))}
@@ -106,14 +107,30 @@ export default function FliesenModal(props: {
   onChange: (next: FliesenState) => void;
   onClose: () => void;
 
+  pricebook: FliesenPriceBook | null;
+
   // dependency
   abbruch: AbbruchState;
   onAbbruchChange: (next: AbbruchState) => void;
 }) {
   const m2 = clamp0(props.wohnflaecheM2);
   const s = props.value;
-  const parts = calcFliesenParts(m2, s);
 
+  const pb = props.pricebook;
+  if (!pb) {
+    return (
+      <Modal
+        open={props.open}
+        title="Fliesen"
+        subtitle="Preisbuch wird geladen…"
+        onClose={props.onClose}
+      >
+        <div className="p-6 text-slate-300">Loading…</div>
+      </Modal>
+    );
+  }
+
+  const parts = calcFliesenParts(m2, s, pb);
   const abbruchBelagSelected = props.abbruch.belagMode !== "off";
 
   function ensureAbbruchBelag() {
@@ -158,12 +175,32 @@ Beim Akzeptieren wird "Abbruch Belag" (falls nicht ausgewählt) automatisch akti
     );
   }
 
+  // function rangeLabel(
+  //   m2: number,
+  //   ranges: { min: number | null; max: number | null }[],
+  // ) {
+  //   const hit = ranges.find(
+  //     (r) => (r.min == null || m2 >= r.min) && (r.max == null || m2 <= r.max),
+  //   );
+  //   if (!hit) return "";
+  //   if (hit.max == null) return `>${hit.min ?? 0} m²`;
+  //   return `${hit.min ?? 0}–${hit.max} m²`;
+  // }
+
   return (
     <Modal
       open={props.open}
       title="Fliesen"
       subtitle={`Wohnfläche (global): ${m2} m²`}
       onClose={props.onClose}
+      headerRight={
+        <div className="text-right">
+          <div className="text-xs text-slate-400">Gesamt</div>
+          <div className="text-lg font-semibold text-emerald-400">
+            {formatEUR(parts.total)}
+          </div>
+        </div>
+      }
     >
       <div className="grid gap-5">
         {/* Note */}
@@ -179,8 +216,8 @@ Beim Akzeptieren wird "Abbruch Belag" (falls nicht ausgewählt) automatisch akti
 
         {/* Bestand */}
         <Card
-          title={FLIESEN_PRICEBOOK.bestand.title}
-          description={FLIESEN_PRICEBOOK.bestand.description}
+          title={pb.bestand.title}
+          description={pb.bestand.description}
           checked={s.bestandOn}
           price={parts.bestand}
           onToggle={(v) => props.onChange({ ...s, bestandOn: v })}
@@ -188,8 +225,8 @@ Beim Akzeptieren wird "Abbruch Belag" (falls nicht ausgewählt) automatisch akti
 
         {/* Neu Bad/WC (dependency Abbruch Belag) */}
         <Card
-          title={FLIESEN_PRICEBOOK.neuBadWc.title}
-          description={FLIESEN_PRICEBOOK.neuBadWc.description}
+          title={pb.neuBadWc.title}
+          description={pb.neuBadWc.description}
           checked={s.neuBadWcOn}
           price={parts.neuBadWc}
           onToggle={(v) =>
@@ -207,8 +244,8 @@ Beim Akzeptieren wird "Abbruch Belag" (falls nicht ausgewählt) automatisch akti
 
         {/* Neu VR+Kü (dependency Abbruch Belag) */}
         <Card
-          title={FLIESEN_PRICEBOOK.neuVrkue.title}
-          description={FLIESEN_PRICEBOOK.neuVrkue.description}
+          title={pb.neuVrkue.title}
+          description={pb.neuVrkue.description}
           checked={s.neuVrkueOn}
           price={parts.neuVrkue}
           onToggle={(v) =>
@@ -226,7 +263,7 @@ Beim Akzeptieren wird "Abbruch Belag" (falls nicht ausgewählt) automatisch akti
 
         {/* Einzelflächen */}
         <Card
-          title={FLIESEN_PRICEBOOK.einzelflaechen.title}
+          title={pb.einzelflaechen.title}
           checked={s.einzelflaechenOn}
           price={parts.einzelflaechen}
           onToggle={(v) =>
@@ -243,20 +280,20 @@ Beim Akzeptieren wird "Abbruch Belag" (falls nicht ausgewählt) automatisch akti
             onChange={(v) => props.onChange({ ...s, einzelflaechenM2: v })}
           />
           <div className="mt-2 text-xs text-slate-400">
-            Grundpreis {formatEUR(FLIESEN_PRICEBOOK.einzelflaechen.base)} +{" "}
-            {FLIESEN_PRICEBOOK.einzelflaechen.ratePerM2.toFixed(2)} €/m²
+            Grundpreis {formatEUR(pb.einzelflaechen.base)} +{" "}
+            {pb.einzelflaechen.ratePerM2.toFixed(2)} €/m²
           </div>
         </Card>
 
         {/* Total */}
-        <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
+        {/* <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
           <div className="flex items-center justify-between">
             <div className="text-sm text-slate-300">Summe Fliesen</div>
             <div className="text-lg font-semibold">
               {formatEUR(parts.total)}
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
     </Modal>
   );

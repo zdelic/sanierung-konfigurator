@@ -1,9 +1,9 @@
 import Modal from "../../Modal";
 import {
-  TROCKENBAU_ITEMS,
   clamp0,
   formatEUR,
   unitLabel,
+  type TrockenbauPriceBook,
 } from "./trockenbau.pricebook";
 import { calcTrockenbauParts, type TrockenbauState } from "./trockenbau.calc";
 
@@ -41,8 +41,8 @@ function Qty(props: {
       <div className="mt-2 flex items-center gap-2">
         <input
           type="number"
-          min={0}
-          step={props.suffix === "lfm" || props.suffix === "m" ? 0.1 : 1}
+          min={1}
+          step={1}
           value={props.value}
           onChange={(e) => props.onChange(clamp0(e.target.value))}
           className="w-full rounded-2xl bg-white/5 px-4 py-3 text-sm ring-1 ring-white/10 outline-none focus:ring-white/20"
@@ -57,6 +57,7 @@ function Qty(props: {
 
 function Card(props: {
   title: string;
+  description?: string; // ✅ dodaj
   checked: boolean;
   price: string;
   onToggle: (v: boolean) => void;
@@ -65,14 +66,25 @@ function Card(props: {
   return (
     <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
       <div className="flex items-start justify-between gap-4">
-        <div className="text-sm font-semibold whitespace-pre-line">
-          {props.title}
+        <div className="min-w-0">
+          <div className="text-sm font-semibold whitespace-pre-line">
+            {props.title}
+          </div>
+
+          {/* ✅ podnaslov iz baze */}
+          {props.description ? (
+            <div className="mt-1 text-xs text-slate-400 whitespace-pre-line">
+              {props.description}
+            </div>
+          ) : null}
         </div>
-        <div className="flex items-center gap-3">
+
+        <div className="flex items-center gap-3 shrink-0">
           <div className="text-sm font-semibold">{props.price}</div>
           <Switch checked={props.checked} onChange={props.onToggle} />
         </div>
       </div>
+
       {props.checked ? <div className="mt-3">{props.children}</div> : null}
     </div>
   );
@@ -83,9 +95,24 @@ export default function TrockenbauModal(props: {
   value: TrockenbauState;
   onChange: (next: TrockenbauState) => void;
   onClose: () => void;
+  pricebook: TrockenbauPriceBook | null;
 }) {
   const s = props.value;
-  const { parts, total } = calcTrockenbauParts(s);
+  const pb = props.pricebook;
+  if (!pb) {
+    return (
+      <Modal
+        open={props.open}
+        title="Trockenbauarbeiten"
+        subtitle="Preisbuch wird geladen…"
+        onClose={props.onClose}
+      >
+        <div className="p-6 text-slate-300">Loading…</div>
+      </Modal>
+    );
+  }
+
+  const { parts, total } = calcTrockenbauParts(s, pb);
 
   return (
     <Modal
@@ -93,6 +120,14 @@ export default function TrockenbauModal(props: {
       title="Trockenbauarbeiten"
       subtitle="Vorsatzschale, Wände, Decken, Aufzahlungen & Details"
       onClose={props.onClose}
+      headerRight={
+        <div className="text-right">
+          <div className="text-xs text-slate-400">Gesamt</div>
+          <div className="text-lg font-semibold text-emerald-400">
+            {formatEUR(total)}
+          </div>
+        </div>
+      }
     >
       <div className="grid gap-5">
         {/* Note */}
@@ -107,7 +142,7 @@ export default function TrockenbauModal(props: {
         </div>
 
         {/* Lines */}
-        {TROCKENBAU_ITEMS.map((item) => {
+        {pb.items.map((item) => {
           const line = s.lines[item.key] ?? { on: false, qty: 0 };
           const price = parts[item.key] ?? 0;
 
@@ -115,6 +150,7 @@ export default function TrockenbauModal(props: {
             <Card
               key={item.key}
               title={item.title}
+              description={item.description}
               checked={line.on}
               price={formatEUR(price)}
               onToggle={(v) =>

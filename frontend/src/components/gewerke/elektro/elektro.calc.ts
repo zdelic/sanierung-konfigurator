@@ -1,10 +1,6 @@
 // elektro.calc.ts
-import {
-  ELEKTRO_PRICEBOOK as pb,
-  clamp0,
-  pickRangePrice,
-  round2,
-} from "./elektro.pricebook";
+import { clamp0, pickRangePrice, round2 } from "./elektro.pricebook";
+import type { ElektroPriceBook } from "./elektro.pricebook.adapter";
 
 export type InfrarotVariantKey = "190w" | "300w" | "675w" | "890w" | "1050w";
 
@@ -41,8 +37,8 @@ export type ElektroState = {
   infrarotOn: boolean;
   infrarotVariant: InfrarotVariantKey;
   infrarotQty: number;
-  infrarotFunkOn: boolean;
-  infrarotThermostatOn: boolean;
+  infrarotFunkQty: number;
+  infrarotThermostatQty: number;
 
   // Base + Unit
   wohnungszuleitungOn: boolean;
@@ -77,8 +73,8 @@ export const DEFAULT_ELEKTRO_STATE: ElektroState = {
   infrarotOn: false,
   infrarotVariant: "190w",
   infrarotQty: 0,
-  infrarotFunkOn: false,
-  infrarotThermostatOn: false,
+  infrarotFunkQty: 0,
+  infrarotThermostatQty: 0,
 
   wohnungszuleitungOn: false,
   wohnungszuleitungLfm: 0,
@@ -92,7 +88,11 @@ function clampInt0(v: unknown) {
   return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0;
 }
 
-export function calcElektroParts(wohnflaecheM2: number, s: ElektroState) {
+export function calcElektroParts(
+  wohnflaecheM2: number,
+  s: ElektroState,
+  pb: ElektroPriceBook,
+) {
   const m2 = clamp0(wohnflaecheM2);
 
   // Dependencies:
@@ -141,14 +141,20 @@ export function calcElektroParts(wohnflaecheM2: number, s: ElektroState) {
     pb.infrarot_panel.variants.find((v) => v.key === s.infrarotVariant) ??
     pb.infrarot_panel.variants[0];
 
-  const infrBase = s.infrarotOn ? infrVariant.pricePerSt * infrQty : 0;
-  const infrFunk =
-    s.infrarotOn && s.infrarotFunkOn
-      ? pb.infrarot_panel.aufz_funk.pricePerSt * infrQty
+  const infrBase =
+    s.infrarotOn && infrQty > 0
+      ? round2(infrVariant.base + infrVariant.pricePerSt * infrQty)
       : 0;
+
+  const funkQty = clampInt0(s.infrarotFunkQty);
+  const thermoQty = clampInt0(s.infrarotThermostatQty);
+
+  const infrFunk =
+    funkQty > 0 ? round2(pb.infrarot_panel.aufz_funk.pricePerSt * funkQty) : 0;
+
   const infrThermo =
-    s.infrarotOn && s.infrarotThermostatOn
-      ? pb.infrarot_panel.aufz_raumthermostat.pricePerSt * infrQty
+    thermoQty > 0
+      ? round2(pb.infrarot_panel.aufz_raumthermostat.pricePerSt * thermoQty)
       : 0;
 
   // Base + unit
@@ -229,6 +235,10 @@ export function calcElektroParts(wohnflaecheM2: number, s: ElektroState) {
   };
 }
 
-export function calcElektroTotal(wohnflaecheM2: number, s: ElektroState) {
-  return calcElektroParts(wohnflaecheM2, s).total;
+export function calcElektroTotal(
+  wohnflaecheM2: number,
+  s: ElektroState,
+  pb: ElektroPriceBook,
+) {
+  return calcElektroParts(wohnflaecheM2, s, pb).total;
 }

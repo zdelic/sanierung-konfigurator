@@ -1,5 +1,6 @@
 import Modal from "../../Modal";
-import { ESTRICH_PRICEBOOK, clamp0, formatEUR } from "./estrich.pricebook";
+import type { ReactNode } from "react";
+import { clamp0, formatEUR, type EstrichPriceBook } from "./estrich.pricebook";
 import { calcEstrichParts, type EstrichState } from "./estrich.calc";
 import type { AbbruchState } from "../aabbruch/abbruch.calc";
 
@@ -36,7 +37,7 @@ function QtyM2(props: {
       <div className="mt-2 flex items-center gap-2">
         <input
           type="number"
-          min={0}
+          min={1}
           step={0.1}
           value={props.value}
           onChange={(e) => props.onChange(clamp0(e.target.value))}
@@ -56,7 +57,7 @@ function Card(props: {
   checked: boolean;
   price: number;
   onToggle: (v: boolean) => void;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
@@ -105,14 +106,29 @@ export default function EstrichModal(props: {
   value: EstrichState;
   onChange: (next: EstrichState) => void;
   onClose: () => void;
-
-  // ✅ cross-gewerk dependency
+  pricebook: EstrichPriceBook | null;
   abbruch: AbbruchState;
   onAbbruchChange: (next: AbbruchState) => void;
 }) {
-  const m2 = clamp0(props.wohnflaecheM2);
+  const m2 = Math.max(0, Number(props.wohnflaecheM2 || 0));
   const s = props.value;
-  const parts = calcEstrichParts(m2, s);
+
+  const pb = props.pricebook;
+
+  if (!pb) {
+    return (
+      <Modal
+        open={props.open}
+        title="Estrich"
+        subtitle="Preisbuch wird geladen…"
+        onClose={props.onClose}
+      >
+        <div className="p-6 text-slate-300">Loading…</div>
+      </Modal>
+    );
+  }
+
+  const parts = calcEstrichParts(m2, s, pb);
 
   // dependency check (Abbruch)
   const abbruchEstrichSelected = props.abbruch.estrichMode !== "off";
@@ -180,6 +196,14 @@ export default function EstrichModal(props: {
       title="Estricharbeiten"
       subtitle={`Wohnfläche (global): ${m2} m²`}
       onClose={props.onClose}
+      headerRight={
+        <div className="text-right">
+          <div className="text-xs text-slate-400">Gesamt</div>
+          <div className="text-lg font-semibold text-emerald-400">
+            {formatEUR(parts.total)}
+          </div>
+        </div>
+      }
     >
       <div className="grid gap-5">
         {/* Note */}
@@ -195,8 +219,8 @@ export default function EstrichModal(props: {
 
         {/* Neuherstellung */}
         <Card
-          title={ESTRICH_PRICEBOOK.neu6cm.title}
-          description={ESTRICH_PRICEBOOK.neu6cm.description}
+          title={pb.neu6cm.title}
+          description={pb.neu6cm.description}
           checked={s.neuOn}
           // show price ONLY if eligible
           price={parts.neu}
@@ -257,8 +281,8 @@ Beim Akzeptieren werden "Abbruch Estrich" und "Abbruch Bodenbelag" (falls nicht 
           {/* Aufzahlung Beschleuniger (only makes sense if eligible) */}
           <div className="mt-4">
             <Card
-              title={ESTRICH_PRICEBOOK.beschleuniger.title}
-              description={ESTRICH_PRICEBOOK.beschleuniger.description}
+              title={pb.beschleuniger.title}
+              description={pb.beschleuniger.description}
               checked={s.beschleunigerOn}
               price={parts.beschleuniger}
               onToggle={(v) => props.onChange({ ...s, beschleunigerOn: v })}
@@ -279,7 +303,7 @@ Beim Akzeptieren werden "Abbruch Estrich" und "Abbruch Bodenbelag" (falls nicht 
 
         {/* Teilleistungen */}
         <Card
-          title="Estrich Teilleistungen"
+          title={"Estrich Teilleistungen"}
           description="Einzelflächen / Verdübelung / Trockenestrich"
           checked={s.teilOn}
           price={parts.teilSum}
@@ -294,7 +318,7 @@ Beim Akzeptieren werden "Abbruch Estrich" und "Abbruch Bodenbelag" (falls nicht 
           }
         >
           <div className="grid gap-4">
-            {ESTRICH_PRICEBOOK.teilleistungen.map((line) => (
+            {pb.teilleistungen.map((line) => (
               <div
                 key={line.key}
                 className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10"
@@ -305,10 +329,11 @@ Beim Akzeptieren werden "Abbruch Estrich" und "Abbruch Bodenbelag" (falls nicht 
                     {formatEUR(parts.teilLines[line.key] ?? 0)}
                   </div>
                 </div>
+                <div className="text-xs text-slate-400">{line.description}</div>
 
                 <div className="mt-3">
                   <QtyM2
-                    label="Teilfläche"
+                    label=""
                     value={s.teilM2[line.key] ?? 0}
                     onChange={(v) =>
                       props.onChange({
@@ -328,14 +353,14 @@ Beim Akzeptieren werden "Abbruch Estrich" und "Abbruch Bodenbelag" (falls nicht 
         </Card>
 
         {/* Total */}
-        <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
+        {/* <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
           <div className="flex items-center justify-between">
             <div className="text-sm text-slate-300">Summe Estricharbeiten</div>
             <div className="text-lg font-semibold">
               {formatEUR(parts.total)}
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
     </Modal>
   );

@@ -5,9 +5,10 @@ export default function Modal(props: {
   title: string;
   subtitle?: string;
   onClose: () => void;
+  headerRight?: React.ReactNode;
   children: React.ReactNode;
 }) {
-  const { open, title, subtitle, onClose, children } = props;
+  const { open, title, subtitle, onClose, headerRight, children } = props;
 
   useEffect(() => {
     if (open) {
@@ -55,12 +56,15 @@ export default function Modal(props: {
               ) : null}
             </div>
 
-            <button
-              onClick={onClose}
-              className="rounded-2xl bg-white/10 px-3 py-2 text-sm ring-1 ring-white/15 hover:bg-white/15"
-            >
-              ✕
-            </button>
+            <div className="flex items-start gap-4">
+              {headerRight ? headerRight : null} {/* ✅ OVO DODAJ */}
+              <button
+                onClick={onClose}
+                className="rounded-2xl bg-white/10 px-3 py-2 text-sm ring-1 ring-white/15 hover:bg-white/15"
+              >
+                ✕
+              </button>
+            </div>
           </div>
 
           {/* SCROLLABLE CONTENT */}

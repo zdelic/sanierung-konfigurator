@@ -1,10 +1,6 @@
 // balkon.calc.ts
-import {
-  BALKON_PRICEBOOK as pb,
-  clamp0,
-  pickRangePrice,
-  round2,
-} from "./balkon.pricebook";
+import { clamp0, pickRangePrice, round2 } from "./balkon.pricebook";
+import type { BalkonPriceBook } from "./balkon.pricebook.adapter";
 
 export type BalkonMainChoice =
   | "off"
@@ -47,7 +43,7 @@ export const DEFAULT_BALKON_STATE: BalkonState = {
   purOn: false,
 };
 
-export function calcBalkonParts(s: BalkonState) {
+export function calcBalkonParts(s: BalkonState, pb: BalkonPriceBook) {
   const m2 = clamp0(s.balkonM2);
 
   const mainPrice =
@@ -126,6 +122,10 @@ export function calcBalkonParts(s: BalkonState) {
   };
 }
 
-export function calcBalkonTotal(_: number, s: BalkonState) {
-  return calcBalkonParts(s).total;
+export function calcBalkonTotal(
+  _: number,
+  s: BalkonState,
+  pb: BalkonPriceBook,
+) {
+  return calcBalkonParts(s, pb).total;
 }

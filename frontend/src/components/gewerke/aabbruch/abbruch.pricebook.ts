@@ -4,6 +4,8 @@ export type RangePrice = {
   min: number | null; // null = offen
   max: number | null;
   price: number; // EUR pauschal
+  title: string;
+  description?: string;
 };
 
 export type TeilPrice =
@@ -22,39 +24,47 @@ export type TeilPrice =
 
 export type AbbruchPriceBook = {
   belag: {
+    title: string; // ✅ NEW
     description: string;
     voll: RangePrice[];
     teil: TeilPrice; // per_area
   };
+
   estrich: {
+    title: string; // ✅ NEW
     description: string;
     voll: RangePrice[];
     teil: TeilPrice; // per_area
   };
 
   innentueren: {
+    title: string; // ✅ NEW
     description: string;
     voll: RangePrice[];
   };
 
   tuerenTeil: {
     zarge: {
+      title: string; // ✅ NEW
       description: string;
       teil: TeilPrice; // per_unit
     };
     blatt: {
+      title: string; // ✅ NEW
       description: string;
       teil: TeilPrice; // per_unit
     };
     eingang: {
+      title: string; // ✅ NEW
       description: string;
       pauschal: number;
     };
   };
 
   waendeDecke: {
+    title: string; // ✅ NEW
     description: string;
-    base: number; // 875,25 EUR (einmal)
+    base: number; // einmal
     positions: {
       mauerwerk: { label: string; rate: number; unit: "m2" };
       vorsatzschale: { label: string; rate: number; unit: "m2" };
@@ -66,8 +76,11 @@ export type AbbruchPriceBook = {
   };
 };
 
+// Ako ovu konstantu još koristiš (fallback), mora imati title polja.
+// Ako je više ne koristiš, možeš je obrisati.
 export const ABBRUCH_PRICEBOOK: AbbruchPriceBook = {
   belag: {
+    title: "Belag",
     description:
       "Abbruch des bestehenden Belags (Teppich, Fliesen, Holz, etc.) inkl. Sockelleisten & inkl. sach- und fachgerechter Entsorgung",
     voll: [
@@ -84,6 +97,7 @@ export const ABBRUCH_PRICEBOOK: AbbruchPriceBook = {
   },
 
   estrich: {
+    title: "Estrich",
     description:
       "Abbruch des Bestandsestrichs inkl. Unterbau & inkl. sach- und fachgerechter Entsorgung",
     voll: [
@@ -100,6 +114,7 @@ export const ABBRUCH_PRICEBOOK: AbbruchPriceBook = {
   },
 
   innentueren: {
+    title: "Innentüren",
     description: "Abbruch – Innentürzargen samt Türblatt",
     voll: [
       { min: 0, max: 40, price: 246.33 },
@@ -113,16 +128,17 @@ export const ABBRUCH_PRICEBOOK: AbbruchPriceBook = {
 
   tuerenTeil: {
     zarge: {
+      title: "Teilleistung – Zarge",
       description: "Teilleistung – Abbruch – Innentürzarge (Einzelzarge)",
-      // ✅ FIX: Stück = (base + rate) * qty
-      teil: { type: "per_area", unit: "m2", base: 109.4, rate: 76.58 },
+      teil: { type: "per_unit", unit: "piece", base: 109.4, rate: 76.58 },
     },
     blatt: {
+      title: "Teilleistung – Türblatt",
       description: "Teilleistung – Abbruch – Einzeltürblatt",
-      // ✅ FIX: Stück = (base + rate) * qty
-      teil: { type: "per_area", unit: "m2", base: 109.4, rate: 43.76 },
+      teil: { type: "per_unit", unit: "piece", base: 109.4, rate: 43.76 },
     },
     eingang: {
+      title: "Abbruch Eingangstüre",
       description:
         "Abbruch Eingangstüre samt Zarge inkl. sach- und fachgerechter Entsorgung",
       pauschal: 333.27,
@@ -130,6 +146,7 @@ export const ABBRUCH_PRICEBOOK: AbbruchPriceBook = {
   },
 
   waendeDecke: {
+    title: "Wände & Decke",
     description: "Abbruch Teilleistungen – Wände und Decke",
     base: 875.25,
     positions: {

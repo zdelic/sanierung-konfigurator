@@ -1,5 +1,10 @@
 // trockenbau.calc.ts
-import { TROCKENBAU_ITEMS, clamp0, round2 } from "./trockenbau.pricebook";
+import {
+  TROCKENBAU_KEYS,
+  clamp0,
+  round2,
+  type TrockenbauPriceBook,
+} from "./trockenbau.pricebook";
 
 export type TrockenbauLineState = {
   on: boolean;
@@ -13,8 +18,8 @@ export type TrockenbauState = {
 
 function buildDefaultLines() {
   const lines: Record<string, TrockenbauLineState> = {};
-  for (const item of TROCKENBAU_ITEMS) {
-    lines[item.key] = { on: false, qty: 0 };
+  for (const key of TROCKENBAU_KEYS) {
+    lines[key] = { on: false, qty: 0 };
   }
   return lines;
 }
@@ -26,14 +31,18 @@ export const DEFAULT_TROCKENBAU_STATE: TrockenbauState = {
 
 export function calcTrockenbauLine(base: number, rate: number, qty: number) {
   const q = clamp0(qty);
+  if (q <= 0) return 0;
   return round2(base + q * rate);
 }
 
-export function calcTrockenbauParts(s: TrockenbauState) {
+export function calcTrockenbauParts(
+  s: TrockenbauState,
+  pb: TrockenbauPriceBook,
+) {
   const parts: Record<string, number> = {};
   let total = 0;
 
-  for (const item of TROCKENBAU_ITEMS) {
+  for (const item of pb.items) {
     const line = s.lines[item.key];
     const value =
       line && line.on ? calcTrockenbauLine(item.base, item.rate, line.qty) : 0;
@@ -44,6 +53,9 @@ export function calcTrockenbauParts(s: TrockenbauState) {
   return { parts, total: round2(total) };
 }
 
-export function calcTrockenbauTotal(s: TrockenbauState) {
-  return calcTrockenbauParts(s).total;
+export function calcTrockenbauTotal(
+  s: TrockenbauState,
+  pb: TrockenbauPriceBook,
+) {
+  return calcTrockenbauParts(s, pb).total;
 }

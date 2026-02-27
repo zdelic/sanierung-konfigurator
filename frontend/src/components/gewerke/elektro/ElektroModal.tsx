@@ -1,10 +1,7 @@
 // ElektroModal.tsx
 import Modal from "../../Modal";
-import {
-  ELEKTRO_PRICEBOOK as pb,
-  clamp0,
-  formatEUR,
-} from "./elektro.pricebook";
+import { clamp0, formatEUR } from "./elektro.pricebook";
+import type { ElektroPriceBook } from "./elektro.pricebook.adapter";
 import {
   calcElektroParts,
   type ElektroState,
@@ -125,10 +122,24 @@ export default function ElektroModal(props: {
   value: ElektroState;
   onChange: (next: ElektroState) => void;
   onClose: () => void;
+  pricebook: ElektroPriceBook | null;
 }) {
+  const pb = props.pricebook;
+  if (!pb) {
+    return (
+      <Modal
+        open={props.open}
+        title="Elektro"
+        subtitle="Preisbuch wird geladen…"
+        onClose={props.onClose}
+      >
+        <div className="p-6 text-slate-300">Loading…</div>
+      </Modal>
+    );
+  }
   const s = props.value;
   const m2 = clamp0(props.wohnflaecheM2);
-  const parts = calcElektroParts(props.wohnflaecheM2, s);
+  const parts = calcElektroParts(props.wohnflaecheM2, s, pb);
 
   const befundLocked = s.wohnungsverteilerOn || s.schalterOn;
 
@@ -162,6 +173,14 @@ export default function ElektroModal(props: {
       title={pb.meta.title}
       subtitle={pb.meta.subtitle}
       onClose={props.onClose}
+      headerRight={
+        <div className="text-right">
+          <div className="text-xs text-slate-400">Gesamt</div>
+          <div className="text-lg font-semibold text-emerald-400">
+            {formatEUR(parts.total)}
+          </div>
+        </div>
+      }
     >
       <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
         <div className="text-xs text-slate-400">Zusätzliche Anmerkung</div>
@@ -475,84 +494,137 @@ export default function ElektroModal(props: {
               </div>
 
               {s.infrarotOn ? (
-                <div className="mt-4 grid gap-4 lg:grid-cols-3">
-                  <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
-                    <div className="text-xs text-slate-400">Variante</div>
-                    <select
-                      value={s.infrarotVariant}
-                      onChange={(e) =>
-                        props.onChange({
-                          ...s,
-                          infrarotVariant: e.target.value as InfrarotVariantKey,
-                        })
-                      }
-                      className="mt-2 w-full rounded-2xl bg-white/5 text-slate-100 px-4 py-3 text-sm
-             ring-1 ring-white/10 outline-none focus:ring-white/20"
-                    >
-                      {pb.infrarot_panel.variants.map((v) => (
-                        <option
-                          key={v.key}
-                          value={v.key}
-                          className="bg-slate-900 text-slate-100"
-                        >
-                          {v.label} ({formatEUR(v.pricePerSt)}/st)
-                        </option>
-                      ))}
-                    </select>
+                <div className="mt-4 grid gap-4">
+                  {/* TOP ROW: Variante + Stück */}
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
+                      <div className="text-xs text-slate-400">Variante</div>
+                      <select
+                        value={s.infrarotVariant}
+                        onChange={(e) =>
+                          props.onChange({
+                            ...s,
+                            infrarotVariant: e.target
+                              .value as InfrarotVariantKey,
+                          })
+                        }
+                        className="mt-2 w-full rounded-2xl bg-white/5 px-4 py-3 text-sm text-slate-100 ring-1 ring-white/10 outline-none focus:ring-white/20"
+                      >
+                        {pb.infrarot_panel.variants.map((v) => (
+                          <option
+                            key={v.key}
+                            value={v.key}
+                            className="bg-slate-900 text-slate-100"
+                          >
+                            {v.label} ({formatEUR(v.pricePerSt)}/st)
+                          </option>
+                        ))}
+                      </select>
+
+                      {/* optional: hint line */}
+                      <div className="mt-2 text-xs text-slate-400">
+                        Grundpreis{" "}
+                        {formatEUR(
+                          pb.infrarot_panel.variants.find(
+                            (v) => v.key === s.infrarotVariant,
+                          )?.base ?? 0,
+                        )}{" "}
+                        +{" "}
+                        {formatEUR(
+                          pb.infrarot_panel.variants.find(
+                            (v) => v.key === s.infrarotVariant,
+                          )?.pricePerSt ?? 0,
+                        )}
+                        /st
+                      </div>
+                    </div>
+
+                    <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
+                      <QtyInput
+                        label="Stück Paneele"
+                        unitBadge="st"
+                        step={1}
+                        value={s.infrarotQty}
+                        onChange={(v) =>
+                          props.onChange({ ...s, infrarotQty: Math.floor(v) })
+                        }
+                      />
+                    </div>
                   </div>
 
+                  {/* AUFZAHLUNGEN */}
                   <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
-                    <QtyInput
-                      label="Stück Paneele"
-                      unitBadge="st"
-                      step={1}
-                      value={s.infrarotQty}
-                      onChange={(v) =>
-                        props.onChange({ ...s, infrarotQty: Math.floor(v) })
-                      }
-                    />
-                  </div>
+                    <div className="flex items-center justify-between">
+                      <div className="text-xs text-slate-400">Aufzahlungen</div>
+                      <div className="text-[11px] text-slate-500">
+                        je Stk, unabhängig von Paneelen
+                      </div>
+                    </div>
 
-                  <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
-                    <div className="text-xs text-slate-400">Aufzahlungen</div>
-                    <div className="mt-3 grid gap-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="text-sm text-slate-200">
-                          {pb.infrarot_panel.aufz_funk.title}
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-xs text-slate-500">
-                            <Switch
-                              checked={s.infrarotFunkOn}
-                              onChange={(v) =>
-                                props.onChange({ ...s, infrarotFunkOn: v })
-                              }
-                            />
-                            {formatEUR(pb.infrarot_panel.aufz_funk.pricePerSt)}
-                            /st
+                    <div className="mt-3 grid gap-2">
+                      {/* Funk row */}
+                      <div className="flex items-center justify-between gap-4 rounded-2xl bg-white/5 px-4 py-3 ring-1 ring-white/10">
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-slate-200 truncate">
+                            {pb.infrarot_panel.aufz_funk.title}
                           </div>
+                          <div className="mt-1 text-xs text-slate-400">
+                            {formatEUR(pb.infrarot_panel.aufz_funk.pricePerSt)}{" "}
+                            / st
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <input
+                            type="number"
+                            min={0}
+                            step={1}
+                            value={s.infrarotFunkQty}
+                            onChange={(e) =>
+                              props.onChange({
+                                ...s,
+                                infrarotFunkQty: Math.floor(
+                                  clamp0(e.target.value),
+                                ),
+                              })
+                            }
+                            className="w-20 rounded-2xl bg-white/5 px-3 py-2 text-sm ring-1 ring-white/10 outline-none focus:ring-white/20"
+                          />
+                          <span className="text-xs text-slate-400">Stk</span>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="text-sm text-slate-200">
-                          {pb.infrarot_panel.aufz_raumthermostat.title}
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-xs text-slate-500">
-                            <Switch
-                              checked={s.infrarotThermostatOn}
-                              onChange={(v) =>
-                                props.onChange({
-                                  ...s,
-                                  infrarotThermostatOn: v,
-                                })
-                              }
-                            />
+
+                      {/* Thermostat row */}
+                      <div className="flex items-center justify-between gap-4 rounded-2xl bg-white/5 px-4 py-3 ring-1 ring-white/10">
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-slate-200 truncate">
+                            {pb.infrarot_panel.aufz_raumthermostat.title}
+                          </div>
+                          <div className="mt-1 text-xs text-slate-400">
                             {formatEUR(
                               pb.infrarot_panel.aufz_raumthermostat.pricePerSt,
-                            )}
-                            /st
+                            )}{" "}
+                            / st
                           </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <input
+                            type="number"
+                            min={0}
+                            step={1}
+                            value={s.infrarotThermostatQty}
+                            onChange={(e) =>
+                              props.onChange({
+                                ...s,
+                                infrarotThermostatQty: Math.floor(
+                                  clamp0(e.target.value),
+                                ),
+                              })
+                            }
+                            className="w-20 rounded-2xl bg-white/5 px-3 py-2 text-sm ring-1 ring-white/10 outline-none focus:ring-white/20"
+                          />
+                          <span className="text-xs text-slate-400">Stk</span>
                         </div>
                       </div>
                     </div>
@@ -649,7 +721,7 @@ export default function ElektroModal(props: {
         </div>
 
         {/* Total */}
-        <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
+        {/* <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
           <div className="flex items-center justify-between">
             <div className="text-sm text-slate-300">Summe Elektro</div>
             <div className="text-lg font-semibold">
@@ -665,7 +737,7 @@ export default function ElektroModal(props: {
               ? ` + Sonstiges: ${formatEUR(parts.sonstigesTotal)}`
               : ""}
           </div>
-        </div>
+        </div> */}
       </div>
     </Modal>
   );

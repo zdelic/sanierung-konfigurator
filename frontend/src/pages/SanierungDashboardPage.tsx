@@ -1,99 +1,130 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import DatePickerDE from "@/components/ui/DatePickerDE";
+import AreaField from "@/components/ui/AreaField";
+import { useNavigate, useParams } from "react-router-dom";
+import {
+  getKalkulation,
+  createKalkulation,
+  updateKalkulation,
+} from "@/lib/kalkulationen/client";
+import { fetchPricebookItems, toItemMap } from "@/lib/pricebook/client";
+import { buildAbbruchPricebook } from "@/components/gewerke/aabbruch/abbruch.pricebook.adapter";
+import type { AbbruchPriceBook } from "@/components/gewerke/aabbruch/abbruch.pricebook";
+import { buildBMSTPricebook } from "@/components/gewerke/bmst/bmst.pricebook.adapter";
+import type { BMSTPriceBook } from "@/components/gewerke/bmst/bmst.pricebook";
+import { buildTrockenbauPricebook } from "@/components/gewerke/trockenbau/trockenbau.pricebook.adapter";
+import type { TrockenbauPriceBook } from "@/components/gewerke/trockenbau/trockenbau.pricebook";
+import { buildEstrichPricebook } from "@/components/gewerke/estrich/estrich.pricebook.adapter";
+import type { EstrichPriceBook } from "@/components/gewerke/estrich/estrich.pricebook";
+import { buildFliesenPricebook } from "@/components/gewerke/fliesen/fliesen.pricebook.adapter";
+import type { FliesenPriceBook } from "@/components/gewerke/fliesen/fliesen.pricebook";
+import { buildTischlerPricebook } from "@/components/gewerke/tischler/tischler.pricebook.adapter";
+import type { TischlerPriceBook } from "@/components/gewerke/tischler/tischler.pricebook";
+import { buildBodenPricebook } from "@/components/gewerke/boden/boden.pricebook.adapter";
+import type { BodenPriceBook } from "@/components/gewerke/boden/boden.pricebook";
+import type { FensterPriceBook } from "@/components/gewerke/fenster/fenster.pricebook.adapter";
+import { buildFensterPricebook } from "@/components/gewerke/fenster/fenster.pricebook.adapter";
+import type { BalkonPriceBook } from "@/components/gewerke/balkon/balkon.pricebook.adapter";
+import { buildBalkonPricebook } from "@/components/gewerke/balkon/balkon.pricebook.adapter";
+import type { ElektroPriceBook } from "@/components/gewerke/elektro/elektro.pricebook.adapter";
+import { buildElektroPricebook } from "@/components/gewerke/elektro/elektro.pricebook.adapter";
+import type { HaustechnikPriceBook } from "@/components/gewerke/haustechnik/haustechnik.pricebook.adapter";
+import { buildHaustechnikPricebook } from "@/components/gewerke/haustechnik/haustechnik.pricebook.adapter";
+import type { ReinigungPriceBook } from "@/components/gewerke/reinigung/reinigung.pricebook.adapter";
+import { buildReinigungPricebook } from "@/components/gewerke/reinigung/reinigung.pricebook.adapter";
 
-import AbbruchModal from "../components/gewerke/aabbruch/AbbruchModal";
+import AbbruchModal from "@/components/gewerke/aabbruch/AbbruchModal";
 import {
   DEFAULT_ABBRUCH_STATE,
   calcAbbruchTotal,
   type AbbruchState,
-} from "../components/gewerke/aabbruch/abbruch.calc";
+} from "@/components/gewerke/aabbruch/abbruch.calc";
 
-import BMSTModal from "../components/gewerke/bmst/BMSTModal";
+import BMSTModal from "@/components/gewerke/bmst/BMSTModal";
 import {
   DEFAULT_BMST_STATE,
   calcBMSTTotal,
   type BMSTState,
-} from "../components/gewerke/bmst/bmst.calc";
+} from "@/components/gewerke/bmst/bmst.calc";
 
-import TrockenbauModal from "../components/gewerke/trockenbau/TrockenbauModal";
+import TrockenbauModal from "@/components/gewerke/trockenbau/TrockenbauModal";
 import {
   DEFAULT_TROCKENBAU_STATE,
   calcTrockenbauTotal,
   type TrockenbauState,
-} from "../components/gewerke/trockenbau/trockenbau.calc";
+} from "@/components/gewerke/trockenbau/trockenbau.calc";
 
-import EstrichModal from "../components/gewerke/estrich/EstrichModal";
+import EstrichModal from "@/components/gewerke/estrich/EstrichModal";
 import {
   DEFAULT_ESTRICH_STATE,
   calcEstrichTotal,
   type EstrichState,
-} from "../components/gewerke/estrich/estrich.calc";
+} from "@/components/gewerke/estrich/estrich.calc";
 
-import FliesenModal from "../components/gewerke/fliesen/FliesenModal";
+import FliesenModal from "@/components/gewerke/fliesen/FliesenModal";
 import {
   DEFAULT_FLIESEN_STATE,
   calcFliesenTotal,
   type FliesenState,
-} from "../components/gewerke/fliesen/fliesen.calc";
+} from "@/components/gewerke/fliesen/fliesen.calc";
 
-import TischlerModal from "../components/gewerke/tischler/TischlerModal";
+import TischlerModal from "@/components/gewerke/tischler/TischlerModal";
 import {
   DEFAULT_TISCHLER_STATE,
   calcTischlerTotal,
   type TischlerState,
-} from "../components/gewerke/tischler/tischler.calc";
+} from "@/components/gewerke/tischler/tischler.calc";
 
-import BodenModal from "../components/gewerke/boden/BodenModal";
+import BodenModal from "@/components/gewerke/boden/BodenModal";
 import {
   DEFAULT_BODEN_STATE,
   calcBodenTotal,
   type BodenState,
-} from "../components/gewerke/boden/boden.calc";
+} from "@/components/gewerke/boden/boden.calc";
 
-import MalerModal from "../components/gewerke/maler/MalerModal";
+import MalerModal from "@/components/gewerke/maler/MalerModal";
 import {
   DEFAULT_MALER_STATE,
   calcMalerTotal,
   type MalerState,
-} from "../components/gewerke/maler/maler.calc";
+} from "@/components/gewerke/maler/maler.calc";
 
-import FensterModal from "../components/gewerke/fenster/FensterModal";
+import FensterModal from "@/components/gewerke/fenster/FensterModal";
 import {
   DEFAULT_FENSTER_STATE,
   calcFensterTotal,
   type FensterState,
-} from "../components/gewerke/fenster/fenster.calc";
+} from "@/components/gewerke/fenster/fenster.calc";
 
-import BalkonModal from "../components/gewerke/balkon/BalkonModal";
+import BalkonModal from "@/components/gewerke/balkon/BalkonModal";
 import {
   DEFAULT_BALKON_STATE,
   calcBalkonTotal,
   type BalkonState,
-} from "../components/gewerke/balkon/balkon.calc";
+} from "@/components/gewerke/balkon/balkon.calc";
 
-import ElektroModal from "../components/gewerke/elektro/ElektroModal";
+import ElektroModal from "@/components/gewerke/elektro/ElektroModal";
 import {
   DEFAULT_ELEKTRO_STATE,
   calcElektroTotal,
   type ElektroState,
-} from "../components/gewerke/elektro/elektro.calc";
+} from "@/components/gewerke/elektro/elektro.calc";
 
-import HaustechnikModal from "../components/gewerke/haustechnik/HaustechnikModal";
+import HaustechnikModal from "@/components/gewerke/haustechnik/HaustechnikModal";
 import {
   DEFAULT_HAUSTECHNIK_STATE,
   calcHaustechnikTotal,
   type HaustechnikState,
-} from "../components/gewerke/haustechnik/haustechnik.calc";
+} from "@/components/gewerke/haustechnik/haustechnik.calc";
 
-import ReinigungModal from "../components/gewerke/reinigung/ReinigungModal";
+import ReinigungModal from "@/components/gewerke/reinigung/ReinigungModal";
 import {
   DEFAULT_REINIGUNG_STATE,
   calcReinigungTotal,
   type ReinigungState,
-} from "../components/gewerke/reinigung/reinigung.calc";
-
-// Ako već imaš Abbruch modal/state u ovom fajlu, samo zadrži.
-// Ovdje je fokus: global m² + PLZ + BGK + PLZ Zuschlag + prikaz samo >0.
+} from "@/components/gewerke/reinigung/reinigung.calc";
+import { buildMalerPricebook } from "@/components/gewerke/maler/maler.pricebook.adapter";
+import type { MalerPriceBook } from "@/components/gewerke/maler/maler.pricebook";
 
 type GewerkKey =
   | "abbruch"
@@ -225,57 +256,265 @@ function calcPlzZuschlag(m2: number, plz: number) {
   const rate = m2 <= 60 ? 65 : 31;
   return round2(rate * m2);
 }
+// function pickState<T>(
+//   obj: Record<string, unknown>,
+//   key: string,
+//   fallback: T,
+// ): T {
+//   const v = obj[key];
+//   return v === undefined || v === null ? fallback : (v as T);
+// }
+
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+function mergeDeep<T>(base: T, patch: unknown): T {
+  // ako patch nije objekt -> vrati base
+  if (!isPlainObject(patch)) return base;
+
+  // ako base nije plain object -> patch ne može pametno merge
+  if (!isPlainObject(base)) return base;
+
+  const out: Record<string, unknown> = { ...base };
+
+  for (const [k, pv] of Object.entries(patch)) {
+    const bv = (base as Record<string, unknown>)[k];
+
+    if (isPlainObject(bv) && isPlainObject(pv)) {
+      out[k] = mergeDeep(bv, pv);
+    } else {
+      out[k] = pv; // overwrite
+    }
+  }
+
+  return out as T;
+}
 
 export default function SanierungDashboardPage() {
   const nav = useNavigate();
-
+  const params = useParams();
+  const kalkId = params.id ? Number(params.id) : null;
   // --- MODAL STATES ---
   const [abbruchOpen, setAbbruchOpen] = useState(false);
   const [abbruch, setAbbruch] = useState<AbbruchState>(DEFAULT_ABBRUCH_STATE);
 
+  const [abbruchPb, setAbbruchPb] = useState<AbbruchPriceBook | null>(null);
+  const [abbruchPbErr, setAbbruchPbErr] = useState<string | null>(null);
+
+  async function ensureAbbruchPb() {
+    if (abbruchPb) return;
+
+    try {
+      const items = await fetchPricebookItems("abbruch");
+      const map = toItemMap(items);
+      setAbbruchPb(buildAbbruchPricebook(map));
+    } catch (e: unknown) {
+      const message =
+        e instanceof Error
+          ? e.message
+          : typeof e === "string"
+            ? e
+            : "Failed to load Abbruch pricebook";
+      setAbbruchPbErr(message);
+    }
+  }
+
   const [bmstOpen, setBmstOpen] = useState(false);
   const [bmst, setBmst] = useState<BMSTState>(DEFAULT_BMST_STATE);
+
+  const [bmstPb, setBmstPb] = useState<BMSTPriceBook | null>(null);
+  const [bmstPbErr, setBmstPbErr] = useState<string | null>(null);
+
+  async function ensureBmstPb() {
+    if (bmstPb) return;
+    try {
+      const items = await fetchPricebookItems("bmst");
+      const map = toItemMap(items);
+      setBmstPb(buildBMSTPricebook(map));
+    } catch (e: unknown) {
+      const msg =
+        e instanceof Error ? e.message : "Failed to load BMST pricebook";
+      setBmstPbErr(msg);
+    }
+  }
 
   const [trockenbauOpen, setTrockenbauOpen] = useState(false);
   const [trockenbau, setTrockenbau] = useState<TrockenbauState>(
     DEFAULT_TROCKENBAU_STATE,
   );
 
+  const [trockenbauPb, setTrockenbauPb] = useState<TrockenbauPriceBook | null>(
+    null,
+  );
+
+  async function ensureTrockenbauPb() {
+    if (trockenbauPb) return;
+    try {
+      const items = await fetchPricebookItems("trockenbau");
+      const map = toItemMap(items);
+      setTrockenbauPb(buildTrockenbauPricebook(map));
+    } catch (e: unknown) {
+      console.error(e);
+    }
+  }
+
   const [estrichOpen, setEstrichOpen] = useState(false);
   const [estrich, setEstrich] = useState<EstrichState>(DEFAULT_ESTRICH_STATE);
+  const [estrichPb, setEstrichPb] = useState<EstrichPriceBook | null>(null);
+  //const [estrichPbErr, setEstrichPbErr] = useState<string | null>(null);
+
+  async function ensureEstrichPb() {
+    if (estrichPb) return;
+
+    try {
+      const items = await fetchPricebookItems("estrich");
+      const map = toItemMap(items);
+      setEstrichPb(buildEstrichPricebook(map));
+    } catch (e: unknown) {
+      console.error(e);
+    }
+  }
 
   const [fliesenOpen, setFliesenOpen] = useState(false);
   const [fliesen, setFliesen] = useState<FliesenState>(DEFAULT_FLIESEN_STATE);
+
+  const [fliesenPb, setFliesenPb] = useState<FliesenPriceBook | null>(null);
+  // optional (ako želiš prikaz greške)
+  //const [fliesenPbErr, setFliesenPbErr] = useState<string | null>(null);
+
+  async function ensureFliesenPb() {
+    if (fliesenPb) return;
+
+    try {
+      const items = await fetchPricebookItems("fliesen");
+      const map = toItemMap(items);
+      setFliesenPb(buildFliesenPricebook(map));
+    } catch (e: unknown) {
+      console.error(e);
+    }
+  }
 
   const [tischlerOpen, setTischlerOpen] = useState(false);
   const [tischler, setTischler] = useState<TischlerState>(
     DEFAULT_TISCHLER_STATE,
   );
+  const [tischlerPb, setTischlerPb] = useState<TischlerPriceBook | null>(null);
+
+  async function ensureTischlerPb() {
+    if (tischlerPb) return;
+    const items = await fetchPricebookItems("tischler");
+    const map = toItemMap(items);
+    setTischlerPb(buildTischlerPricebook(map));
+  }
 
   const [bodenOpen, setBodenOpen] = useState(false);
   const [boden, setBoden] = useState<BodenState>(DEFAULT_BODEN_STATE);
+  const [bodenPb, setBodenPb] = useState<BodenPriceBook | null>(null);
+  const [bodenPbErr, setBodenPbErr] = useState<string | null>(null);
+
+  async function ensureBodenPb() {
+    if (bodenPb) return;
+    try {
+      const items = await fetchPricebookItems("boden");
+      const map = toItemMap(items);
+      setBodenPb(buildBodenPricebook(map));
+    } catch (e: unknown) {
+      const msg =
+        e instanceof Error ? e.message : "Failed to load Boden pricebook";
+      setBodenPbErr(msg);
+    }
+  }
 
   const [malerOpen, setMalerOpen] = useState(false);
   const [maler, setMaler] = useState<MalerState>(DEFAULT_MALER_STATE);
+  const [malerPb, setMalerPb] = useState<MalerPriceBook | null>(null);
+
+  async function ensureMalerPb() {
+    if (malerPb) return;
+    const items = await fetchPricebookItems("maler");
+    const map = toItemMap(items);
+    setMalerPb(buildMalerPricebook(map));
+  }
 
   const [fensterOpen, setFensterOpen] = useState(false);
+
   const [fenster, setFenster] = useState<FensterState>(DEFAULT_FENSTER_STATE);
+
+  const [fensterPb, setFensterPb] = useState<FensterPriceBook | null>(null);
+  //const [fensterPbErr, setFensterPbErr] = useState<string | null>(null);
+
+  async function ensureFensterPb() {
+    if (fensterPb) return;
+    try {
+      const items = await fetchPricebookItems("fenster");
+      const map = toItemMap(items);
+      setFensterPb(buildFensterPricebook(map));
+    } catch (e: unknown) {
+      console.error(e);
+    }
+  }
 
   const [balkonOpen, setBalkonOpen] = useState(false);
   const [balkon, setBalkon] = useState<BalkonState>(DEFAULT_BALKON_STATE);
 
+  const [balkonPb, setBalkonPb] = useState<BalkonPriceBook | null>(null);
+  async function ensureBalkonPb() {
+    if (balkonPb) return;
+    const items = await fetchPricebookItems("balkon");
+    const map = toItemMap(items);
+    setBalkonPb(buildBalkonPricebook(map));
+  }
+  //const balkonTotal = balkonPb ? calcBalkonTotal(0, balkon, balkonPb) : 0;
+
   const [elektroOpen, setElektroOpen] = useState(false);
   const [elektro, setElektro] = useState<ElektroState>(DEFAULT_ELEKTRO_STATE);
+  const [elektroPb, setElektroPb] = useState<ElektroPriceBook | null>(null);
+
+  async function ensureElektroPb() {
+    if (elektroPb) return;
+    const items = await fetchPricebookItems("elektro");
+    const map = toItemMap(items);
+    setElektroPb(buildElektroPricebook(map));
+  }
 
   const [haustechnikOpen, setHaustechnikOpen] = useState(false);
   const [haustechnik, setHaustechnik] = useState<HaustechnikState>(
     DEFAULT_HAUSTECHNIK_STATE,
   );
+  const [haustechnikPb, setHaustechnikPb] =
+    useState<HaustechnikPriceBook | null>(null);
+
+  async function ensureHaustechnikPb() {
+    if (haustechnikPb) return;
+
+    try {
+      const items = await fetchPricebookItems("haustechnik");
+      const map = toItemMap(items);
+      setHaustechnikPb(buildHaustechnikPricebook(map));
+    } catch (e) {
+      console.error("Failed to load haustechnik pricebook", e);
+    }
+  }
 
   const [reinigungOpen, setReinigungOpen] = useState(false);
   const [reinigung, setReinigung] = useState<ReinigungState>(
     DEFAULT_REINIGUNG_STATE,
   );
+  const [reinigungPb, setReinigungPb] = useState<ReinigungPriceBook | null>(
+    null,
+  );
+
+  async function ensureReinigungPb() {
+    if (reinigungPb) return;
+    const items = await fetchPricebookItems("reinigung");
+    const map = toItemMap(items);
+    setReinigungPb(buildReinigungPricebook(map));
+  }
+
+  // --- META / ROUTE ---
+  const [currentId, setCurrentId] = useState<number | null>(null);
+  const [kalkName, setKalkName] = useState("Kalkulation WHG-Sanierung");
 
   // --- PROJECT META ---
   const [project, setProject] = useState({
@@ -288,45 +527,161 @@ export default function SanierungDashboardPage() {
     plz: 1010,
   });
 
+  // load existing kalkulation (edit mode)
+  useEffect(() => {
+    if (!kalkId || Number.isNaN(kalkId)) return;
+
+    (async () => {
+      try {
+        const k = await getKalkulation(kalkId);
+
+        setCurrentId(k.id);
+        setKalkName(k.name);
+
+        setProject({
+          projectName: k.project_name ?? "Sanierung Projekt",
+          address: k.address ?? "",
+          customer: k.customer ?? "",
+          createdAt: k.created_at_date ?? new Date().toISOString().slice(0, 10),
+          note: k.note ?? "",
+          wohnflaecheM2: k.wohnflaeche_m2 ?? 0,
+          plz: k.plz ?? 0,
+        });
+
+        const gd = (k.gewerke_data ?? {}) as Record<string, unknown>;
+
+        setAbbruch(mergeDeep(DEFAULT_ABBRUCH_STATE, gd.abbruch));
+        setBmst(mergeDeep(DEFAULT_BMST_STATE, gd.bmst));
+        setTrockenbau(mergeDeep(DEFAULT_TROCKENBAU_STATE, gd.trockenbau));
+        setEstrich(mergeDeep(DEFAULT_ESTRICH_STATE, gd.estrich));
+        setFliesen(mergeDeep(DEFAULT_FLIESEN_STATE, gd.fliesen));
+        setTischler(mergeDeep(DEFAULT_TISCHLER_STATE, gd.tischler));
+        setBoden(mergeDeep(DEFAULT_BODEN_STATE, gd.boden));
+        setMaler(mergeDeep(DEFAULT_MALER_STATE, gd.maler));
+        setFenster(mergeDeep(DEFAULT_FENSTER_STATE, gd.fenster));
+        setBalkon(mergeDeep(DEFAULT_BALKON_STATE, gd.balkon));
+        setElektro(mergeDeep(DEFAULT_ELEKTRO_STATE, gd.elektro));
+        setHaustechnik(mergeDeep(DEFAULT_HAUSTECHNIK_STATE, gd.haustechnik));
+        setReinigung(mergeDeep(DEFAULT_REINIGUNG_STATE, gd.reinigung));
+        await Promise.all([
+          ensureAbbruchPb(),
+          ensureBmstPb(),
+          ensureTrockenbauPb(),
+          ensureEstrichPb(),
+          ensureFliesenPb(),
+          ensureTischlerPb(),
+          ensureBodenPb(),
+          ensureMalerPb(),
+          ensureFensterPb(),
+          ensureBalkonPb(),
+          ensureElektroPb(),
+          ensureHaustechnikPb(),
+          ensureReinigungPb(),
+        ]);
+      } catch (e) {
+        console.error(e);
+        alert("Kalkulation kann nicht geladen werden.");
+      }
+    })();
+  }, [kalkId]);
+
+  async function handleSave() {
+    const payload = {
+      name: kalkName,
+      project_name: project.projectName,
+      address: project.address,
+      customer: project.customer,
+      created_at_date: project.createdAt,
+      note: project.note,
+      wohnflaeche_m2: Number(project.wohnflaecheM2 || 0),
+      plz: Number(project.plz || 0),
+      bgk,
+      plz_zuschlag: plzZuschlag,
+      overhead_total: overheadTotal,
+      grand_total: grandTotal,
+      gewerke_totals: totals,
+      gewerke_data: {
+        abbruch,
+        bmst,
+        trockenbau,
+        estrich,
+        fliesen,
+        tischler,
+        boden,
+        maler,
+        fenster,
+        balkon,
+        elektro,
+        haustechnik,
+        reinigung,
+      },
+    };
+
+    try {
+      if (currentId === null) {
+        const created = await createKalkulation(payload);
+        setCurrentId(created.id);
+      } else {
+        await updateKalkulation(currentId, payload);
+      }
+      alert("Kalkulation gespeichert!");
+    } catch (e) {
+      console.error(e);
+      alert("Fehler beim Speichern der Berechnung");
+    }
+  }
+
   const m2 = Number(project.wohnflaecheM2 || 0);
   const plz = Number(project.plz || 0);
 
   // --- TOTALS ---
-  const totals = useMemo(() => {
-    const base: Record<GewerkKey, number> = {
-      abbruch: calcAbbruchTotal(m2, abbruch),
-      bmst: calcBMSTTotal(bmst),
-      trockenbau: calcTrockenbauTotal(trockenbau),
+  const totals: Record<GewerkKey, number> = {
+    abbruch: abbruchPb ? calcAbbruchTotal(m2, abbruch, abbruchPb) : 0,
+    bmst: bmstPb ? calcBMSTTotal(bmst, bmstPb) : 0,
+    trockenbau: trockenbauPb
+      ? calcTrockenbauTotal(trockenbau, trockenbauPb)
+      : 0,
 
-      // ako Estrich/Fliesen/Tischler/Boden koriste global m²:
-      estrich: calcEstrichTotal(m2, estrich),
-      fliesen: calcFliesenTotal(m2, fliesen),
-      tischler: calcTischlerTotal(m2, tischler),
-      boden: calcBodenTotal(m2, boden),
-      maler: calcMalerTotal(m2, maler),
-      fenster: calcFensterTotal(m2, fenster),
-      elektro: calcElektroTotal(m2, elektro),
-      haustechnik: calcHaustechnikTotal(m2, haustechnik),
-      balkon: calcBalkonTotal(m2, balkon),
-      reinigung: calcReinigungTotal(m2, reinigung),
-    };
-    return base;
-  }, [
-    m2,
-    abbruch,
-    bmst,
-    trockenbau,
-    estrich,
-    fliesen,
-    tischler,
-    boden,
-    maler,
-    fenster,
-    balkon,
-    elektro,
-    haustechnik,
-    reinigung,
-  ]);
+    // ako Estrich/Fliesen/Tischler/Boden koriste global m²:
+    estrich: estrichPb ? calcEstrichTotal(m2, estrich, estrichPb) : 0,
+    fliesen: fliesenPb ? calcFliesenTotal(m2, fliesen, fliesenPb) : 0,
+    tischler: tischlerPb ? calcTischlerTotal(m2, tischler, tischlerPb) : 0,
+    boden: bodenPb ? calcBodenTotal(m2, boden, bodenPb) : 0,
+    maler: malerPb ? calcMalerTotal(m2, maler, malerPb) : 0,
+    fenster: fensterPb ? calcFensterTotal(m2, fenster, fensterPb) : 0,
+    balkon: balkonPb ? calcBalkonTotal(m2, balkon, balkonPb) : 0,
+    elektro: elektroPb ? calcElektroTotal(m2, elektro, elektroPb) : 0,
+    haustechnik: haustechnikPb
+      ? calcHaustechnikTotal(m2, haustechnik, haustechnikPb)
+      : 0,
+    reinigung: reinigungPb ? calcReinigungTotal(m2, reinigung, reinigungPb) : 0,
+  };
+
+  const openHaustechnik = () => {
+    ensureHaustechnikPb();
+    ensureAbbruchPb();
+    ensureEstrichPb();
+    ensureBodenPb();
+    ensureFliesenPb();
+    setHaustechnikOpen(true);
+  };
+
+  const onAbbruchChangeFromDeps = (next: AbbruchState) => {
+    ensureAbbruchPb();
+    setAbbruch(next);
+  };
+  const onEstrichChangeFromDeps = (next: EstrichState) => {
+    ensureEstrichPb();
+    setEstrich(next);
+  };
+  const onBodenChangeFromDeps = (next: BodenState) => {
+    ensureBodenPb();
+    setBoden(next);
+  };
+  const onFliesenChangeFromDeps = (next: FliesenState) => {
+    ensureFliesenPb();
+    setFliesen(next);
+  };
 
   const bgk = calcBGK(m2);
   const plzZuschlag = calcPlzZuschlag(m2, plz);
@@ -339,6 +694,11 @@ export default function SanierungDashboardPage() {
   const grandTotal = round2(gewerkeSum + overheadTotal);
 
   const activeGewerke = GEWERKE.filter((g) => (totals[g.key] ?? 0) > 0);
+
+  function setAbbruchAndEnsure(next: AbbruchState) {
+    setAbbruch(next);
+    if (!abbruchPb) void ensureAbbruchPb(); // fire-and-forget
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -356,7 +716,7 @@ export default function SanierungDashboardPage() {
             onClick={() => nav("/")}
             className="rounded-2xl bg-white/10 px-4 py-2 text-sm ring-1 ring-white/15 hover:bg-white/15"
           >
-            ← Konfiguratoren
+            ← Startseite
           </button>
 
           <button className="rounded-2xl bg-white/10 px-4 py-2 text-sm ring-1 ring-white/15 hover:bg-white/15">
@@ -387,42 +747,54 @@ export default function SanierungDashboardPage() {
             </div>
 
             {/* project fields */}
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <div className="mt-6 grid gap-4 sm:grid-cols-3">
+              {/* Row 1 */}
+              <Field
+                label="Projekt Name"
+                value={project.projectName}
+                onChange={(v) => setProject((p) => ({ ...p, projectName: v }))}
+                className="md:col-span-2"
+              />
+              {/* ✅ This fills the “hole” by spanning down over the next row */}
+              <div className="md:row-span-2 rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
+                <AreaField
+                  value={project.wohnflaecheM2}
+                  onChange={(v) =>
+                    setProject((p) => ({ ...p, wohnflaecheM2: v }))
+                  }
+                />
+              </div>
+
+              {/* Row 2 (Adresse left 2 cols) + Area right spanning 2 rows */}
               <Field
                 label="Kunde"
                 value={project.customer}
                 onChange={(v) => setProject((p) => ({ ...p, customer: v }))}
-              />
-              <Field
-                label="Datum"
-                value={project.createdAt}
-                onChange={(v) => setProject((p) => ({ ...p, createdAt: v }))}
+                className="md:col-span-2"
               />
               <Field
                 label="Adresse"
                 value={project.address}
                 onChange={(v) => setProject((p) => ({ ...p, address: v }))}
-                className="sm:col-span-2"
-              />
-
-              <NumberField
-                label="Wohnfläche (m²)"
-                value={project.wohnflaecheM2}
-                onChange={(v) =>
-                  setProject((p) => ({ ...p, wohnflaecheM2: v }))
-                }
               />
               <NumberField
                 label="PLZ"
                 value={project.plz}
                 onChange={(v) => setProject((p) => ({ ...p, plz: v }))}
               />
+              <DatePickerDE
+                label="Datum"
+                value={project.createdAt}
+                onChange={(v) => setProject((p) => ({ ...p, createdAt: v }))}
+              />
+
+              {/* Row 3 */}
 
               <Field
                 label="Notiz"
                 value={project.note}
                 onChange={(v) => setProject((p) => ({ ...p, note: v }))}
-                className="sm:col-span-2"
+                className="md:col-span-3"
               />
             </div>
 
@@ -445,14 +817,26 @@ export default function SanierungDashboardPage() {
             </div>
 
             <div className="mt-6 flex flex-wrap gap-3">
-              <button
+              {/* <button
                 onClick={() => nav("/k/sanierung/wizard")}
                 className="rounded-2xl bg-indigo-500 px-5 py-3 text-sm font-medium text-white hover:bg-indigo-400"
               >
                 Zur Kalkulation (Wizard)
+              </button> */}
+              <button
+                onClick={handleSave}
+                className="rounded-2xl bg-indigo-500 px-5 py-3 text-sm font-medium text-white hover:bg-indigo-400"
+              >
+                Kalkulation speichern
               </button>
-              <button className="rounded-2xl bg-white/10 px-5 py-3 text-sm ring-1 ring-white/15 hover:bg-white/15">
-                PDF Export (später)
+              <button
+                onClick={() => {
+                  if (!currentId)
+                    return alert("Speichern Sie zuerst die Berechnung.");
+                  window.open(`/api/kalkulationen/${currentId}/pdf`, "_blank");
+                }}
+              >
+                PDF Export
               </button>
             </div>
           </div>
@@ -502,7 +886,12 @@ export default function SanierungDashboardPage() {
 
         {/* gewerke grid */}
         <div className="mt-10">
-          <div className="text-sm text-slate-300">Gewerke</div>
+          <div className="text-sm text-slate-300">
+            Gewerke{" "}
+            {bodenPbErr && (
+              <div className="text-sm text-red-400">{bodenPbErr}</div>
+            )}
+          </div>
           <div className="mt-2 text-2xl font-semibold tracking-tight">
             Öffne ein Gewerk zur Bearbeitung
           </div>
@@ -515,20 +904,70 @@ export default function SanierungDashboardPage() {
               return (
                 <button
                   key={g.key}
-                  onClick={() => {
-                    if (g.key === "abbruch") setAbbruchOpen(true);
-                    if (g.key === "bmst") setBmstOpen(true);
-                    if (g.key === "trockenbau") setTrockenbauOpen(true);
-                    if (g.key === "estrich") setEstrichOpen(true);
-                    if (g.key === "fliesen") setFliesenOpen(true);
-                    if (g.key === "tischler") setTischlerOpen(true);
-                    if (g.key === "boden") setBodenOpen(true);
-                    if (g.key === "maler") setMalerOpen(true);
-                    if (g.key === "fenster") setFensterOpen(true);
-                    if (g.key === "balkon") setBalkonOpen(true);
-                    if (g.key === "elektro") setElektroOpen(true);
-                    if (g.key === "haustechnik") setHaustechnikOpen(true);
-                    if (g.key === "reinigung") setReinigungOpen(true);
+                  onClick={async () => {
+                    if (g.key === "abbruch") {
+                      await ensureAbbruchPb();
+                      setAbbruchOpen(true);
+                      return;
+                    }
+                    if (g.key === "bmst") {
+                      await ensureBmstPb();
+                      setBmstOpen(true);
+                      return;
+                    }
+                    if (g.key === "trockenbau") {
+                      await ensureTrockenbauPb();
+                      setTrockenbauOpen(true);
+                      return;
+                    }
+                    if (g.key === "estrich") {
+                      await ensureEstrichPb();
+                      setEstrichOpen(true);
+                      return;
+                    }
+                    if (g.key === "fliesen") {
+                      await ensureFliesenPb();
+                      setFliesenOpen(true);
+                      return;
+                    }
+                    if (g.key === "tischler") {
+                      await ensureTischlerPb();
+                      setTischlerOpen(true);
+                      return;
+                    }
+                    if (g.key === "boden") {
+                      await ensureBodenPb();
+                      setBodenOpen(true);
+                      return;
+                    }
+                    if (g.key === "maler") {
+                      await ensureMalerPb();
+                      setMalerOpen(true);
+                      return;
+                    }
+                    if (g.key === "fenster") {
+                      await ensureFensterPb();
+                      setFensterOpen(true);
+                      return;
+                    }
+                    if (g.key === "balkon") {
+                      await ensureBalkonPb();
+                      setBalkonOpen(true);
+                      return;
+                    }
+                    if (g.key === "elektro") {
+                      await ensureElektroPb();
+                      setElektroOpen(true);
+                    }
+                    if (g.key === "haustechnik") {
+                      openHaustechnik();
+                      return;
+                    }
+                    if (g.key === "reinigung") {
+                      await ensureReinigungPb();
+                      setReinigungOpen(true);
+                      return;
+                    }
                   }}
                   className={[
                     "text-left rounded-3xl p-5 ring-1 backdrop-blur transition",
@@ -580,19 +1019,27 @@ export default function SanierungDashboardPage() {
             value={abbruch}
             onChange={setAbbruch}
             onClose={() => setAbbruchOpen(false)}
+            pricebook={abbruchPb}
           />
+          {abbruchPbErr && (
+            <div className="text-sm text-red-400">{abbruchPbErr}</div>
+          )}
 
           <BMSTModal
             open={bmstOpen}
             value={bmst}
             onChange={setBmst}
             onClose={() => setBmstOpen(false)}
+            pricebook={bmstPb}
           />
+          {bmstPbErr && <div className="text-sm text-red-400">{bmstPbErr}</div>}
+
           <TrockenbauModal
             open={trockenbauOpen}
             value={trockenbau}
             onChange={setTrockenbau}
             onClose={() => setTrockenbauOpen(false)}
+            pricebook={trockenbauPb}
           />
           <EstrichModal
             open={estrichOpen}
@@ -601,7 +1048,8 @@ export default function SanierungDashboardPage() {
             onChange={setEstrich}
             onClose={() => setEstrichOpen(false)}
             abbruch={abbruch}
-            onAbbruchChange={setAbbruch}
+            onAbbruchChange={setAbbruchAndEnsure}
+            pricebook={estrichPb}
           />
           <FliesenModal
             open={fliesenOpen}
@@ -610,7 +1058,8 @@ export default function SanierungDashboardPage() {
             onChange={setFliesen}
             onClose={() => setFliesenOpen(false)}
             abbruch={abbruch}
-            onAbbruchChange={setAbbruch}
+            onAbbruchChange={setAbbruchAndEnsure}
+            pricebook={fliesenPb}
           />
           <TischlerModal
             open={tischlerOpen}
@@ -619,16 +1068,18 @@ export default function SanierungDashboardPage() {
             onChange={setTischler}
             onClose={() => setTischlerOpen(false)}
             abbruch={abbruch}
-            onAbbruchChange={setAbbruch}
+            onAbbruchChange={setAbbruchAndEnsure}
+            pricebook={tischlerPb}
           />
           <BodenModal
             open={bodenOpen}
             wohnflaecheM2={m2}
             value={boden}
             onChange={setBoden}
+            pricebook={bodenPb}
             onClose={() => setBodenOpen(false)}
             abbruch={abbruch}
-            onAbbruchChange={setAbbruch}
+            onAbbruchChange={setAbbruchAndEnsure}
           />
           <MalerModal
             open={malerOpen}
@@ -636,6 +1087,7 @@ export default function SanierungDashboardPage() {
             value={maler}
             onChange={setMaler}
             onClose={() => setMalerOpen(false)}
+            pricebook={malerPb}
           />
           <FensterModal
             open={fensterOpen}
@@ -643,6 +1095,7 @@ export default function SanierungDashboardPage() {
             value={fenster}
             onChange={setFenster}
             onClose={() => setFensterOpen(false)}
+            pricebook={fensterPb}
           />
           <BalkonModal
             open={balkonOpen}
@@ -650,6 +1103,7 @@ export default function SanierungDashboardPage() {
             value={balkon}
             onChange={setBalkon}
             onClose={() => setBalkonOpen(false)}
+            pricebook={balkonPb}
           />
           <ElektroModal
             open={elektroOpen}
@@ -657,21 +1111,23 @@ export default function SanierungDashboardPage() {
             value={elektro}
             onChange={setElektro}
             onClose={() => setElektroOpen(false)}
+            pricebook={elektroPb}
           />
           <HaustechnikModal
             open={haustechnikOpen}
             wohnflaecheM2={m2}
             value={haustechnik}
             onChange={setHaustechnik}
-            abbruch={abbruch}
-            onAbbruchChange={setAbbruch}
-            boden={boden}
-            onBodenChange={setBoden}
-            fliesen={fliesen}
-            onFliesenChange={setFliesen}
-            estrich={estrich}
-            onEstrichChange={setEstrich}
             onClose={() => setHaustechnikOpen(false)}
+            pricebook={haustechnikPb}
+            abbruch={abbruch}
+            onAbbruchChange={onAbbruchChangeFromDeps}
+            estrich={estrich}
+            onEstrichChange={onEstrichChangeFromDeps}
+            boden={boden}
+            onBodenChange={onBodenChangeFromDeps}
+            fliesen={fliesen}
+            onFliesenChange={onFliesenChangeFromDeps}
           />
           <ReinigungModal
             open={reinigungOpen}
@@ -679,6 +1135,7 @@ export default function SanierungDashboardPage() {
             value={reinigung}
             onChange={setReinigung}
             onClose={() => setReinigungOpen(false)}
+            pricebook={reinigungPb}
           />
         </div>
 
@@ -686,15 +1143,6 @@ export default function SanierungDashboardPage() {
           © {new Date().getFullYear()} Sanierung Kalkulator • React + Tailwind
         </div>
       </div>
-
-      {/* ✅ Abbruch Modal (render!) */}
-      <AbbruchModal
-        open={abbruchOpen}
-        wohnflaecheM2={m2}
-        value={abbruch}
-        onChange={setAbbruch}
-        onClose={() => setAbbruchOpen(false)}
-      />
     </div>
   );
 }

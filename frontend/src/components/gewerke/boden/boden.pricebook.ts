@@ -1,5 +1,43 @@
 // boden.pricebook.ts
 
+export type BodenPriceBook = {
+  bestand: { title: string; description: string };
+
+  bestand_teppich: { title: string; ranges: RangePrice[] };
+  bestand_laminat: { title: string; ranges: RangePrice[] };
+  bestand_parkett: { title: string; ranges: RangePrice[] };
+
+  teil_sanierung_parkett: { title: string; base: number; ratePerM2: number };
+
+  neu_teppich: {
+    title: string;
+    requiresAbbruchBelag: boolean;
+    ranges: RangePrice[];
+  };
+  neu_laminat: {
+    title: string;
+    requiresAbbruchBelag: boolean;
+    ranges: RangePrice[];
+  };
+  neu_parkett: {
+    title: string;
+    requiresAbbruchBelag: boolean;
+    ranges: RangePrice[];
+  };
+
+  einzel_teppich: { title: string; base: number; ratePerM2: number };
+  einzel_laminat: { title: string; base: number; ratePerM2: number };
+  einzel_parkett: { title: string; base: number; ratePerM2: number };
+
+  aufz_antidroe: { title: string; factorOfNeuLaminat: number };
+  aufz_antidroe_einzel_laminat: { title: string; ratePerM2: number };
+
+  aufz_fischgraet: { title: string; base: number; ratePerM2: number };
+  aufz_verlegen_versiegeln: { title: string; ratePerM2: number };
+
+  mauerfries: { title: string; ratePerLfm: number };
+};
+
 export type RangePrice = {
   min: number | null;
   max: number | null;

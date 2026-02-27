@@ -1,10 +1,6 @@
 // reinigung.calc.ts
-import {
-  REINIGUNG_PRICEBOOK as pb,
-  clamp0,
-  pickRangePrice,
-  round2,
-} from "./reinigung.pricebook";
+import { clamp0, pickRangePrice, round2 } from "./reinigung.pricebook";
+import type { ReinigungPriceBook } from "./reinigung.pricebook.adapter";
 
 export type ReinigungState = {
   note: string;
@@ -22,7 +18,11 @@ export const DEFAULT_REINIGUNG_STATE: ReinigungState = {
   endreinigungOn: false,
 };
 
-export function calcReinigungParts(wohnflaecheM2: number, s: ReinigungState) {
+export function calcReinigungParts(
+  wohnflaecheM2: number,
+  s: ReinigungState,
+  pb: ReinigungPriceBook,
+) {
   const m2 = clamp0(wohnflaecheM2);
 
   // ako nema m2 => 0
@@ -47,6 +47,10 @@ export function calcReinigungParts(wohnflaecheM2: number, s: ReinigungState) {
   };
 }
 
-export function calcReinigungTotal(wohnflaecheM2: number, s: ReinigungState) {
-  return calcReinigungParts(wohnflaecheM2, s).total;
+export function calcReinigungTotal(
+  wohnflaecheM2: number,
+  s: ReinigungState,
+  pb: ReinigungPriceBook,
+) {
+  return calcReinigungParts(wohnflaecheM2, s, pb).total;
 }

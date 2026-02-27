@@ -1,11 +1,8 @@
 // HaustechnikModal.tsx
 import React from "react";
 import Modal from "../../Modal";
-import {
-  HST_PRICEBOOK as pb,
-  clamp0,
-  formatEUR,
-} from "./haustechnik.pricebook";
+import { clamp0, formatEUR } from "./haustechnik.pricebook";
+import type { HaustechnikPriceBook } from "./haustechnik.pricebook.adapter";
 import {
   calcHaustechnikParts,
   type HaustechnikState,
@@ -187,6 +184,7 @@ export default function HaustechnikModal(props: {
   open: boolean;
   wohnflaecheM2: number;
   value: HaustechnikState;
+  pricebook: HaustechnikPriceBook | null;
   onChange: (next: HaustechnikState) => void;
 
   // cross-gewerk states
@@ -205,8 +203,21 @@ export default function HaustechnikModal(props: {
   onClose: () => void;
 }) {
   const s = props.value;
+  const pb = props.pricebook;
+  if (!pb) {
+    return (
+      <Modal
+        open={props.open}
+        title="Haustechnik"
+        subtitle="Preisbuch wird geladen…"
+        onClose={props.onClose}
+      >
+        <div className="p-6 text-slate-300">Loading…</div>
+      </Modal>
+    );
+  }
   const m2 = clamp0(props.wohnflaecheM2);
-  const parts = calcHaustechnikParts(props.wohnflaecheM2, s);
+  const parts = calcHaustechnikParts(props.wohnflaecheM2, s, pb);
 
   // -----------------------------
   // Auto-deps inside Haustechnik
@@ -724,6 +735,14 @@ export default function HaustechnikModal(props: {
       title={pb.meta.title}
       subtitle={pb.meta.subtitle}
       onClose={props.onClose}
+      headerRight={
+        <div className="text-right">
+          <div className="text-xs text-slate-400">Gesamt</div>
+          <div className="text-lg font-semibold text-emerald-400">
+            {formatEUR(parts.total)}
+          </div>
+        </div>
+      }
     >
       {/* FIX: modal uvijek ista visina, scroll samo unutra */}
       <div className="max-h-[80vh] overflow-y-auto pr-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -1512,14 +1531,14 @@ export default function HaustechnikModal(props: {
           </div>
 
           {/* Total */}
-          <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
+          {/* <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
             <div className="flex items-center justify-between">
               <div className="text-sm text-slate-300">Summe Haustechnik</div>
               <div className="text-lg font-semibold">
                 {formatEUR(parts.total)}
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
     </Modal>

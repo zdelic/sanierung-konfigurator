@@ -1,17 +1,13 @@
 // fenster.calc.ts
-import {
-  FENSTER_PRICEBOOK as pb,
-  clamp0,
-  pickRangePrice,
-  round2,
-} from "./fenster.pricebook";
+import { clamp0, pickRangePrice, round2 } from "./fenster.pricebook";
+import type { FensterPriceBook } from "./fenster.pricebook.adapter";
 
 export type FensterTyp = "off" | "holz_alu" | "pvc_alu" | "pvc";
-export type SonnenschutzTyp =
-  | "off"
-  | "innenjalousie"
-  | "aussenjalousie"
-  | "blinos";
+// export type SonnenschutzTyp =
+//   | "off"
+//   | "innenjalousie"
+//   | "aussenjalousie"
+//   | "blinos";
 
 export type FensterState = {
   note: string;
@@ -57,7 +53,11 @@ export type FensterState = {
   anzahlLuefter: number;
 
   sonnenschutzAbbruchOn: boolean;
-  sonnenschutzTyp: SonnenschutzTyp;
+
+  // ✅ tri opcije, sve može zajedno
+  sonnenschutzInnenOn: boolean;
+  sonnenschutzAussenjalousieOn: boolean;
+  sonnenschutzBlinosOn: boolean;
 
   sonnenschutzAufputzOn: boolean;
   jalousienFlaecheM2: number;
@@ -103,7 +103,10 @@ export const DEFAULT_FENSTER_STATE: FensterState = {
   anzahlLuefter: 0,
 
   sonnenschutzAbbruchOn: false,
-  sonnenschutzTyp: "off",
+
+  sonnenschutzInnenOn: false,
+  sonnenschutzAussenjalousieOn: false,
+  sonnenschutzBlinosOn: false,
 
   sonnenschutzAufputzOn: false,
   jalousienFlaecheM2: 0,
@@ -126,7 +129,11 @@ export function calcFensterKonfiguratorDerived(s: FensterState) {
   return { flaecheProFenster, flaecheTotal, stk };
 }
 
-export function calcFensterParts(globalM2: number, s: FensterState) {
+export function calcFensterParts(
+  globalM2: number,
+  s: FensterState,
+  pb: FensterPriceBook,
+) {
   const m2 = clamp0(globalM2);
 
   // ============================
@@ -227,12 +234,19 @@ export function calcFensterParts(globalM2: number, s: FensterState) {
       ? round2(pb.abbruch_sonnenschutz_per_m2 * A)
       : 0;
 
-    if (s.sonnenschutzTyp === "innenjalousie")
-      k_sonnenschutzMontage = round2(pb.montage_innenjalousien_per_m2 * A);
-    if (s.sonnenschutzTyp === "aussenjalousie")
-      k_sonnenschutzMontage = round2(pb.montage_aussenjalousien_per_m2 * A);
-    if (s.sonnenschutzTyp === "blinos")
-      k_sonnenschutzMontage = round2(pb.montage_blinos_rollo_per_m2 * A);
+    let montage = 0;
+
+    if (s.sonnenschutzInnenOn) {
+      montage += pb.montage_innenjalousien_per_m2 * A;
+    }
+    if (s.sonnenschutzAussenjalousieOn) {
+      montage += pb.montage_aussenjalousien_per_m2 * A;
+    }
+    if (s.sonnenschutzBlinosOn) {
+      montage += pb.montage_blinos_rollo_per_m2 * A;
+    }
+
+    k_sonnenschutzMontage = round2(montage);
 
     const jalA = clamp0(s.jalousienFlaecheM2);
     k_sonnenschutzAufputz =
@@ -289,6 +303,10 @@ export function calcFensterParts(globalM2: number, s: FensterState) {
   };
 }
 
-export function calcFensterTotal(globalM2: number, s: FensterState) {
-  return calcFensterParts(globalM2, s).total;
+export function calcFensterTotal(
+  globalM2: number,
+  s: FensterState,
+  pb: FensterPriceBook,
+) {
+  return calcFensterParts(globalM2, s, pb).total;
 }

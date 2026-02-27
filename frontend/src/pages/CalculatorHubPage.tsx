@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { calculators } from "../data/calculators";
+import KalkulationenPage from "./KalkulationenPage";
 
 export default function CalculatorHubPage() {
   const nav = useNavigate();
@@ -33,9 +34,9 @@ export default function CalculatorHubPage() {
         {/* calculators */}
         <div className="mt-10">
           <div className="text-sm text-slate-300">Kalkulatoren</div>
-          <div className="mt-2 text-2xl font-semibold tracking-tight">
+          {/* <div className="mt-2 text-2xl font-semibold tracking-tight">
             Wähle den passenden Konfigurator
-          </div>
+          </div> */}
 
           <div className="mt-6 grid gap-4">
             {calculators.map((c) => (
@@ -68,21 +69,96 @@ export default function CalculatorHubPage() {
 
         {/* my calculations placeholder */}
         <div className="mt-10 border-t border-white/10 pt-8">
-          <div className="text-sm text-slate-300">Meine Kalkulationen</div>
-          <div className="mt-2 rounded-3xl bg-white/5 p-6 ring-1 ring-white/10">
-            <div className="text-base font-semibold">
-              Noch keine Daten verbunden
-            </div>
-            <div className="mt-1 text-sm text-slate-300">
-              Ovdje ćemo kasnije prikazati listu projekata (lokalno ili iz
-              API-ja) sa “Weiter / Duplizieren / PDF”.
-            </div>
+          <div className="text-center text-xl font-semibold text-slate-300">
+            Meine Kalkulationen
           </div>
+
+          <KalkulationenPage />
         </div>
 
-        <div className="mt-12 border-t border-white/10 pt-6 text-xs text-slate-500">
-          © {new Date().getFullYear()} Sanierung Kalkulator • React + Tailwind
-        </div>
+        <footer className="mt-16 border-t border-white/10 bg-slate-900/40 backdrop-blur">
+          <div className="max-w-7xl mx-auto px-6 py-8">
+            <div className="grid md:grid-cols-3 gap-8 text-sm text-slate-400">
+              {/* Firma */}
+              <div>
+                <div className="text-slate-200 font-semibold mb-3">
+                  GERSTL BAU GmbH & Co KG
+                </div>
+                <div>Kalkofenstraße 25</div>
+                <div>A-4600 Wels</div>
+              </div>
+
+              {/* Kontakt */}
+              <div>
+                <div className="text-slate-200 font-semibold mb-3">Kontakt</div>
+
+                <div className="space-y-1">
+                  <div>
+                    <a
+                      href="mailto:sanierung-wien@gerstl.at"
+                      className="hover:text-white transition"
+                    >
+                      E-Mail: sanierung-wien@gerstl.at
+                    </a>
+                  </div>
+
+                  <div>
+                    <a
+                      href="tel:+4314025149"
+                      className="hover:text-white transition"
+                    >
+                      Tel.: +43 (0)1/4025149
+                    </a>
+                  </div>
+
+                  <div>
+                    <a
+                      href="https://sanierung.gerstl.at"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-white transition"
+                    >
+                      Web: www.gerstl.at
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Rechtliches */}
+              <div>
+                <div className="text-slate-200 font-semibold mb-3">
+                  Rechtliches
+                </div>
+                <div className="space-y-1">
+                  <a
+                    href="https://www.gerstl.at/impressum"
+                    className="block hover:text-white transition"
+                  >
+                    Impressum
+                  </a>
+                  <a
+                    href="https://www.gerstl.at/datenschutz/"
+                    className="block hover:text-white transition"
+                  >
+                    Datenschutz
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom line */}
+            <div className="mt-8 pt-6 border-t border-white/10 text-xs text-slate-500 text-center">
+              © {new Date().getFullYear()} GERSTL BAU GmbH & Co KG •{"  "}
+              <a
+                href="mailto:z.delic@gerstl.at"
+                className="underline hover:text-white transition"
+              >
+                z.delic@gerstl.at
+              </a>
+              {"  "}• Alle Rechte vorbehalten
+            </div>
+          </div>
+        </footer>
       </div>
     </div>
   );

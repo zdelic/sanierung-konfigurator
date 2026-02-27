@@ -1,9 +1,9 @@
 // fliesen.calc.ts
 import {
-  FLIESEN_PRICEBOOK,
   clamp0,
   pickRangePrice,
   round2,
+  type FliesenPriceBook,
 } from "./fliesen.pricebook";
 
 export type FliesenState = {
@@ -35,29 +35,31 @@ export const DEFAULT_FLIESEN_STATE: FliesenState = {
   einzelflaechenM2: 0,
 };
 
-export function calcFliesenParts(globalM2: number, s: FliesenState) {
+export function calcFliesenParts(
+  globalM2: number,
+  s: FliesenState,
+  pb: FliesenPriceBook,
+) {
   const m2 = clamp0(globalM2);
 
-  const bestand = s.bestandOn
-    ? pickRangePrice(m2, FLIESEN_PRICEBOOK.bestand.ranges)
-    : 0;
+  const bestand = s.bestandOn ? pickRangePrice(m2, pb.bestand.ranges) : 0;
 
   const neuBadWcEligible = s.neuBadWcOn && s.neuBadWcDepsAccepted;
   const neuBadWc = neuBadWcEligible
-    ? pickRangePrice(m2, FLIESEN_PRICEBOOK.neuBadWc.ranges)
+    ? pickRangePrice(m2, pb.neuBadWc.ranges)
     : 0;
 
   const neuVrkueEligible = s.neuVrkueOn && s.neuVrkueDepsAccepted;
   const neuVrkue = neuVrkueEligible
-    ? pickRangePrice(m2, FLIESEN_PRICEBOOK.neuVrkue.ranges)
+    ? pickRangePrice(m2, pb.neuVrkue.ranges)
     : 0;
 
   const einzelflaechenQ = clamp0(s.einzelflaechenM2);
   const einzelflaechen =
     s.einzelflaechenOn && einzelflaechenQ > 0
       ? round2(
-          FLIESEN_PRICEBOOK.einzelflaechen.base +
-            einzelflaechenQ * FLIESEN_PRICEBOOK.einzelflaechen.ratePerM2,
+          pb.einzelflaechen.base +
+            einzelflaechenQ * pb.einzelflaechen.ratePerM2,
         )
       : 0;
 
@@ -74,6 +76,10 @@ export function calcFliesenParts(globalM2: number, s: FliesenState) {
   };
 }
 
-export function calcFliesenTotal(globalM2: number, s: FliesenState) {
-  return calcFliesenParts(globalM2, s).total;
+export function calcFliesenTotal(
+  globalM2: number,
+  s: FliesenState,
+  pb: FliesenPriceBook,
+) {
+  return calcFliesenParts(globalM2, s, pb).total;
 }

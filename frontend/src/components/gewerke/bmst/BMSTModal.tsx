@@ -1,5 +1,6 @@
 import Modal from "../../Modal";
-import { BMST_PRICEBOOK, clamp0, formatEUR } from "./bmst.pricebook";
+import { clamp0, formatEUR, type BMSTPriceBook } from "./bmst.pricebook";
+import type { ReactNode } from "react";
 import { calcBMSTParts, type BMSTState } from "./bmst.calc";
 
 function SectionTitle(props: { title: string; subtitle?: string }) {
@@ -49,7 +50,7 @@ function Qty(props: {
       <div className="mt-2 flex items-center gap-2">
         <input
           type="number"
-          min={0}
+          min={1}
           step={props.suffix === "lfm" ? 0.1 : 1}
           value={props.value}
           onChange={(e) => props.onChange(clamp0(e.target.value))}
@@ -89,7 +90,7 @@ function Card(props: {
   checked: boolean;
   price: number;
   onToggle: (v: boolean) => void;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
@@ -121,9 +122,25 @@ export default function BMSTModal(props: {
   value: BMSTState;
   onChange: (next: BMSTState) => void;
   onClose: () => void;
+  pricebook: BMSTPriceBook | null;
 }) {
   const s = props.value;
-  const parts = calcBMSTParts(s);
+  const pb = props.pricebook;
+
+  if (!pb) {
+    return (
+      <Modal
+        open={props.open}
+        title="Baumeisterarbeiten"
+        subtitle="Preisbuch wird geladen…"
+        onClose={props.onClose}
+      >
+        <div className="p-6 text-slate-300">Loading…</div>
+      </Modal>
+    );
+  }
+
+  const parts = calcBMSTParts(s, pb);
 
   return (
     <Modal
@@ -131,6 +148,14 @@ export default function BMSTModal(props: {
       title="Baumeisterarbeiten"
       subtitle="Tragende Durchbrüche, Auswechslungen, Mauerwerk, Kamin"
       onClose={props.onClose}
+      headerRight={
+        <div className="text-right">
+          <div className="text-xs text-slate-400">Gesamt</div>
+          <div className="text-lg font-semibold text-emerald-400">
+            {formatEUR(parts.total)}
+          </div>
+        </div>
+      }
     >
       <div className="grid gap-5">
         {/* Note */}
@@ -146,8 +171,8 @@ export default function BMSTModal(props: {
 
         {/* 1) Türdurchbruch tragend */}
         <Card
-          title="Türdurchbruch (tragend) bis 100/220cm"
-          description={BMST_PRICEBOOK.tuerdurchbruch_tragend.description}
+          title={pb.tuerdurchbruch_tragend.title}
+          description={pb.tuerdurchbruch_tragend.description}
           checked={s.tuerdurchbruchOn}
           price={parts.tuerdurchbruch}
           onToggle={(v) => props.onChange({ ...s, tuerdurchbruchOn: v })}
@@ -159,20 +184,18 @@ export default function BMSTModal(props: {
             onChange={(v) => props.onChange({ ...s, tuerdurchbruchQty: v })}
           />
           <div className="mt-2 text-xs text-slate-400">
-            Satz:{" "}
-            {formatEUR(BMST_PRICEBOOK.tuerdurchbruch_tragend.ratePerPiece)} /
-            Stk.
+            Satz: {formatEUR(pb.tuerdurchbruch_tragend.ratePerPiece)} / Stk.
           </div>
         </Card>
 
         {/* 2) Auswechslung bis 20cm */}
         <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
           <SectionTitle
-            title={BMST_PRICEBOOK.auswechslung20.title}
-            subtitle={`${BMST_PRICEBOOK.auswechslung20.description}
+            title={pb.auswechslung20.title}
+            subtitle={`${pb.auswechslung20.description}
 
             ACHTUNG: Für diese Position sind zusätzliche Kosten für „Einreichung + Statische Berechnung“ verpflichtend (+ ${formatEUR(
-              BMST_PRICEBOOK.auswechslung20.statikFee,
+              pb.auswechslung20.statikFee,
             )}).
             Bitte akzeptieren, sonst wird diese Position nicht berechnet.`}
           />
@@ -199,21 +222,21 @@ export default function BMSTModal(props: {
               />
 
               <div className="mt-2 text-xs text-slate-400">
-                Grundpreis {formatEUR(BMST_PRICEBOOK.auswechslung20.base)} +{" "}
+                Grundpreis {formatEUR(pb.auswechslung20.base)} +{" "}
                 {!s.aus20AcceptStatik || s.aus20Lfm <= 0 ? (
                   <div className="mt-2 text-xs text-amber-200">
                     Preis wird erst nach Akzeptieren und Eingabe der Laufmeter
                     berechnet.
                   </div>
                 ) : null}
-                {BMST_PRICEBOOK.auswechslung20.ratePerLfm.toFixed(2)} €/lfm
+                {pb.auswechslung20.ratePerLfm.toFixed(2)} €/lfm
               </div>
 
               <AcceptBox
                 checked={s.aus20AcceptStatik}
                 onChange={(v) => props.onChange({ ...s, aus20AcceptStatik: v })}
                 label={`ACHTUNG: Einreichung + Statische Berechnung ist für diese Position verpflichtend (+ ${formatEUR(
-                  BMST_PRICEBOOK.auswechslung20.statikFee,
+                  pb.auswechslung20.statikFee,
                 )}).
                 Ohne Akzeptieren wird die Position nicht kalkuliert.
                 
@@ -233,10 +256,10 @@ export default function BMSTModal(props: {
         {/* 3) Auswechslung bis 40cm */}
         <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
           <SectionTitle
-            title={BMST_PRICEBOOK.auswechslung40.title}
-            subtitle={`${BMST_PRICEBOOK.auswechslung40.description}
+            title={pb.auswechslung40.title}
+            subtitle={`${pb.auswechslung40.description}
             ACHTUNG: Für diese Position sind zusätzliche Kosten für „Einreichung + Statische Berechnung“ verpflichtend (+ ${formatEUR(
-              BMST_PRICEBOOK.auswechslung40.statikFee,
+              pb.auswechslung40.statikFee,
             )}).
             Bitte akzeptieren, sonst wird diese Position nicht berechnet.`}
           />
@@ -262,21 +285,21 @@ export default function BMSTModal(props: {
               />
 
               <div className="mt-2 text-xs text-slate-400">
-                Grundpreis {formatEUR(BMST_PRICEBOOK.auswechslung40.base)} +{" "}
+                Grundpreis {formatEUR(pb.auswechslung40.base)} +{" "}
                 {!s.aus20AcceptStatik || s.aus20Lfm <= 0 ? (
                   <div className="mt-2 text-xs text-amber-200">
                     Preis wird erst nach Akzeptieren und Eingabe der Laufmeter
                     berechnet.
                   </div>
                 ) : null}
-                {BMST_PRICEBOOK.auswechslung40.ratePerLfm.toFixed(2)} €/lfm
+                {pb.auswechslung40.ratePerLfm.toFixed(2)} €/lfm
               </div>
 
               <AcceptBox
                 checked={s.aus40AcceptStatik}
                 onChange={(v) => props.onChange({ ...s, aus40AcceptStatik: v })}
                 label={`ACHTUNG: Einreichung + Statische Berechnung ist für diese Position verpflichtend (+ ${formatEUR(
-                  BMST_PRICEBOOK.auswechslung40.statikFee,
+                  pb.auswechslung40.statikFee,
                 )}).
                 Ohne Akzeptieren wird die Position nicht kalkuliert.
                 
@@ -295,7 +318,7 @@ export default function BMSTModal(props: {
 
         {/* MWK nicht tragend */}
         <Card
-          title="MWK (inkl. Verputz) nicht tragend"
+          title={pb.mwk_nicht_tragend.title}
           checked={s.mwkNichtTragendOn}
           price={parts.mwkNichtTragend}
           onToggle={(v) => props.onChange({ ...s, mwkNichtTragendOn: v })}
@@ -307,14 +330,14 @@ export default function BMSTModal(props: {
             onChange={(v) => props.onChange({ ...s, mwkNichtTragendM2: v })}
           />
           <div className="mt-2 text-xs text-slate-400">
-            Grundpreis {formatEUR(BMST_PRICEBOOK.mwk_nicht_tragend.base)} +{" "}
-            {BMST_PRICEBOOK.mwk_nicht_tragend.ratePerM2.toFixed(2)} €/m²
+            Grundpreis {formatEUR(pb.mwk_nicht_tragend.base)} +{" "}
+            {pb.mwk_nicht_tragend.ratePerM2.toFixed(2)} €/m²
           </div>
         </Card>
 
         {/* MWK tragend */}
         <Card
-          title="Tragendes MWK (inkl. Verputz)"
+          title={pb.mwk_tragend.title}
           checked={s.mwkTragendOn}
           price={parts.mwkTragend}
           onToggle={(v) => props.onChange({ ...s, mwkTragendOn: v })}
@@ -326,14 +349,14 @@ export default function BMSTModal(props: {
             onChange={(v) => props.onChange({ ...s, mwkTragendM2: v })}
           />
           <div className="mt-2 text-xs text-slate-400">
-            Grundpreis {formatEUR(BMST_PRICEBOOK.mwk_tragend.base)} +{" "}
-            {BMST_PRICEBOOK.mwk_tragend.ratePerM2.toFixed(2)} €/m²
+            Grundpreis {formatEUR(pb.mwk_tragend.base)} +{" "}
+            {pb.mwk_tragend.ratePerM2.toFixed(2)} €/m²
           </div>
         </Card>
 
         {/* Ausmauerung NF */}
         <Card
-          title="Ausmauerungen mit NF Ziegel (inkl. Verputz)"
+          title={pb.ausmauerung_nf.title}
           checked={s.ausmauerungOn}
           price={parts.ausmauerung}
           onToggle={(v) => props.onChange({ ...s, ausmauerungOn: v })}
@@ -345,14 +368,14 @@ export default function BMSTModal(props: {
             onChange={(v) => props.onChange({ ...s, ausmauerungM3: v })}
           />
           <div className="mt-2 text-xs text-slate-400">
-            Grundpreis {formatEUR(BMST_PRICEBOOK.ausmauerung_nf.base)} +{" "}
-            {BMST_PRICEBOOK.ausmauerung_nf.ratePerM3.toFixed(2)} €/m³
+            Grundpreis {formatEUR(pb.ausmauerung_nf.base)} +{" "}
+            {pb.ausmauerung_nf.ratePerM3.toFixed(2)} €/m³
           </div>
         </Card>
 
         {/* Kamin herstellen */}
         <Card
-          title="Kamin herstellen"
+          title={pb.kamin_herstellen.title}
           checked={s.kaminOn}
           price={parts.kamin}
           onToggle={(v) => props.onChange({ ...s, kaminOn: v })}
@@ -364,14 +387,14 @@ export default function BMSTModal(props: {
             onChange={(v) => props.onChange({ ...s, kaminM3: v })}
           />
           <div className="mt-2 text-xs text-slate-400">
-            Grundpreis {formatEUR(BMST_PRICEBOOK.kamin_herstellen.base)} +{" "}
-            {BMST_PRICEBOOK.kamin_herstellen.ratePerM3.toFixed(2)} €/m³
+            Grundpreis {formatEUR(pb.kamin_herstellen.base)} +{" "}
+            {pb.kamin_herstellen.ratePerM3.toFixed(2)} €/m³
           </div>
         </Card>
 
         {/* Aufzahlung Türchen */}
         <Card
-          title="Aufzahlung Türchen"
+          title={pb.aufz_tuerchen.title}
           checked={s.tuerchenOn}
           price={parts.tuerchen}
           onToggle={(v) => props.onChange({ ...s, tuerchenOn: v })}
@@ -383,12 +406,12 @@ export default function BMSTModal(props: {
             onChange={(v) => props.onChange({ ...s, tuerchenQty: v })}
           />
           <div className="mt-2 text-xs text-slate-400">
-            Satz: {formatEUR(BMST_PRICEBOOK.aufz_tuerchen.ratePerPiece)} / Stk.
+            Satz: {formatEUR(pb.aufz_tuerchen.ratePerPiece)} / Stk.
           </div>
         </Card>
 
         {/* TOTAL */}
-        <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
+        {/* <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
           <div className="flex items-center justify-between">
             <div className="text-sm text-slate-300">
               Summe Baumeisterarbeiten
@@ -397,7 +420,7 @@ export default function BMSTModal(props: {
               {formatEUR(parts.total)}
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
     </Modal>
   );

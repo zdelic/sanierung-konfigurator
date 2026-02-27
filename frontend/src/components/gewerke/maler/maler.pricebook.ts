@@ -1,5 +1,82 @@
 // maler.pricebook.ts
 
+export type MalerRoomItem = { key: string; title: string; price: number };
+
+export type MalerPriceBook = {
+  // SECTION TITLES
+  bestand: { title: string };
+  verputz: { title: string };
+  spachtelung: { title: string };
+  malerei: { title: string };
+  zargen: { title: string };
+  bestand_vorarbeiten: {
+    title: string;
+    description?: string;
+    ranges: RangePrice[];
+  };
+  bestand_starke_verunreinigungen: {
+    title: string;
+    description?: string;
+    ranges: RangePrice[];
+  };
+  bestand_oberflaechen_ueberarbeiten: {
+    title: string;
+    description?: string;
+    ranges: RangePrice[];
+  };
+
+  innenputz_instand_10: {
+    title: string;
+    description?: string;
+    ranges: RangePrice[];
+  };
+  innenputz_instand_50: {
+    title: string;
+    description?: string;
+    ranges: RangePrice[];
+  };
+  innenputz_neu: { title: string; description?: string; ranges: RangePrice[] };
+
+  verputz_einzelflaechen: {
+    title: string;
+    description?: string;
+    base: number;
+    ratePerM2: number;
+    minM2: number;
+  };
+
+  neu_spachtelung: {
+    title: string;
+    description?: string;
+    ranges: RangePrice[];
+  };
+  neu_malerei: { title: string; description?: string; ranges: RangePrice[] };
+
+  einzelflaechen_spachteln: {
+    title: string;
+    base: number;
+    ratePerM2: number;
+    minM2: number;
+  };
+  einzelflaechen_malen: {
+    title: string;
+    base: number;
+    ratePerM2: number;
+    minM2: number;
+  };
+
+  einzelraeume_spachteln: { title: string; items: MalerRoomItem[] };
+  einzelraeume_malen: { title: string; items: MalerRoomItem[] };
+
+  zargen_beschichten: {
+    title: string;
+    description?: string;
+    ranges: RangePrice[];
+  };
+  einzelne_zarge_bis2: { title: string; pricePerStk: number };
+  einzelne_zarge_bis4: { title: string; pricePerStk: number };
+};
+
 export type RangePrice = {
   min: number | null;
   max: number | null;

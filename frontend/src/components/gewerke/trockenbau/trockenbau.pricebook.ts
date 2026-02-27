@@ -11,6 +11,27 @@ export type TBItem = {
   unit: Unit;
 };
 
+export type TrockenbauPriceBook = {
+  items: TBItem[];
+};
+
+// samo ključevi za inicijalizaciju state-a (da ne zavisi od pb)
+export const TROCKENBAU_KEYS = [
+  "vorsatzschale",
+  "waende",
+  "decke",
+  "potterien",
+  "akustik",
+  "brandschutz",
+  "nassraum",
+  "revision_std",
+  "revision_f90",
+  "schottung",
+  "nicht_raumhoch",
+  "uk_kueche",
+  "umfassungszarge",
+] as const;
+
 export const TB_BASE = 148.18;
 
 export const TROCKENBAU_ITEMS: TBItem[] = [

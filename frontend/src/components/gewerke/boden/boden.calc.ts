@@ -1,9 +1,9 @@
 // boden.calc.ts
 import {
-  BODEN_PRICEBOOK as pb,
   clamp0,
   pickRangePrice,
   round2,
+  type BodenPriceBook,
 } from "./boden.pricebook";
 
 export type BodenState = {
@@ -123,7 +123,11 @@ function rateOnly(rate: number, qty: number) {
   return round2(q * rate);
 }
 
-export function calcBodenParts(globalM2: number, s: BodenState) {
+export function calcBodenParts(
+  globalM2: number,
+  s: BodenState,
+  pb: BodenPriceBook,
+) {
   const m2 = clamp0(globalM2);
 
   // Bestand tiered (mutually exclusive? -> ovdje dozvoljavamo više ako želiš; možeš kasnije ograničiti)
@@ -271,6 +275,10 @@ export function calcBodenParts(globalM2: number, s: BodenState) {
   };
 }
 
-export function calcBodenTotal(globalM2: number, s: BodenState) {
-  return calcBodenParts(globalM2, s).total;
+export function calcBodenTotal(
+  globalM2: number,
+  s: BodenState,
+  pb: BodenPriceBook,
+) {
+  return calcBodenParts(globalM2, s, pb).total;
 }

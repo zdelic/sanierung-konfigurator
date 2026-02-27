@@ -1,10 +1,11 @@
 import Modal from "../../Modal";
-import { MALER_PRICEBOOK as pb, clamp0, formatEUR } from "./maler.pricebook";
+import { clamp0, formatEUR, type MalerPriceBook } from "./maler.pricebook";
 import {
   calcMalerParts,
   type MalerState,
   type VerputzMode,
 } from "./maler.calc";
+import type { ReactNode } from "react";
 
 function Switch(props: { checked: boolean; onChange: (v: boolean) => void }) {
   return (
@@ -34,7 +35,7 @@ function Card(props: {
   checked: boolean;
   price: number;
   onToggle: (v: boolean) => void;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
@@ -65,7 +66,7 @@ function RadioRow(props: {
   label: string;
   checked: boolean;
   onChange: () => void;
-  right?: React.ReactNode;
+  right?: ReactNode;
 }) {
   return (
     <button
@@ -164,13 +165,27 @@ export default function MalerModal(props: {
   value: MalerState;
   onChange: (next: MalerState) => void;
   onClose: () => void;
+  pricebook: MalerPriceBook | null;
 }) {
+  const pb = props.pricebook;
+  if (!pb) {
+    return (
+      <Modal
+        open={props.open}
+        title="Malerarbeiten"
+        subtitle="Preisbuch wird geladen…"
+        onClose={props.onClose}
+      >
+        <div className="p-6 text-slate-300">Loading…</div>
+      </Modal>
+    );
+  }
+
   const m2 = clamp0(props.wohnflaecheM2);
   const s = props.value;
-  const parts = calcMalerParts(m2, s);
-
-  function setVerputzMode(mode: VerputzMode) {
-    props.onChange({ ...s, verputzMode: mode });
+  const parts = calcMalerParts(m2, s, pb);
+  function setVerputzMode(next: VerputzMode) {
+    props.onChange({ ...s, verputzMode: next });
   }
 
   return (
@@ -179,6 +194,14 @@ export default function MalerModal(props: {
       title="Malerarbeiten"
       subtitle={`Wohnfläche (global): ${m2} m²`}
       onClose={props.onClose}
+      headerRight={
+        <div className="text-right">
+          <div className="text-xs text-slate-400">Gesamt</div>
+          <div className="text-lg font-semibold text-emerald-400">
+            {formatEUR(parts.total)}
+          </div>
+        </div>
+      }
     >
       <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
         <div className="text-xs text-slate-400">Zusätzliche Anmerkung</div>
@@ -424,7 +447,7 @@ export default function MalerModal(props: {
                                 ...s,
                                 spachtelRoomQty: {
                                   ...s.spachtelRoomQty,
-                                  [key]: v,
+                                  [key]: v ? Math.max(1, qty || 1) : 0,
                                 },
                               })
                             }
@@ -442,7 +465,7 @@ export default function MalerModal(props: {
                                 ...s,
                                 spachtelRoomQty: {
                                   ...s.spachtelRoomQty,
-                                  [item.key]: v,
+                                  [key]: v,
                                 },
                               })
                             }
@@ -694,14 +717,14 @@ export default function MalerModal(props: {
         </div>
 
         {/* Total */}
-        <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
+        {/* <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
           <div className="flex items-center justify-between">
             <div className="text-sm text-slate-300">Summe Maler</div>
             <div className="text-lg font-semibold">
               {formatEUR(parts.total)}
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
     </Modal>
   );

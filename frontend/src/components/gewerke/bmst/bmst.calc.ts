@@ -1,5 +1,5 @@
 // bmst.calc.ts
-import { BMST_PRICEBOOK, clamp0, round2 } from "./bmst.pricebook";
+import { clamp0, round2, type BMSTPriceBook } from "./bmst.pricebook";
 
 export type BMSTState = {
   note: string;
@@ -72,9 +72,7 @@ function calcBasePlusRate(base: number, rate: number, qty: number) {
   return round2(base + q * rate);
 }
 
-export function calcBMSTParts(s: BMSTState) {
-  const pb = BMST_PRICEBOOK;
-
+export function calcBMSTParts(s: BMSTState, pb: BMSTPriceBook) {
   const tuerdurchbruch = s.tuerdurchbruchOn
     ? round2(
         clamp0(s.tuerdurchbruchQty) * pb.tuerdurchbruch_tragend.ratePerPiece,
@@ -175,6 +173,6 @@ export function calcBMSTParts(s: BMSTState) {
   };
 }
 
-export function calcBMSTTotal(s: BMSTState) {
-  return calcBMSTParts(s).total;
+export function calcBMSTTotal(s: BMSTState, pb: BMSTPriceBook) {
+  return calcBMSTParts(s, pb).total;
 }

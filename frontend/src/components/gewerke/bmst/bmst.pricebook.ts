@@ -2,6 +2,7 @@
 
 export type BMSTPriceBook = {
   tuerdurchbruch_tragend: {
+    title: string;
     description: string;
     ratePerPiece: number;
   };
@@ -25,30 +26,35 @@ export type BMSTPriceBook = {
   };
 
   mwk_nicht_tragend: {
+    title: string;
     description: string;
     base: number;
     ratePerM2: number;
   };
 
   mwk_tragend: {
+    title: string;
     description: string;
     base: number;
     ratePerM2: number;
   };
 
   ausmauerung_nf: {
+    title: string;
     description: string;
     base: number;
     ratePerM3: number;
   };
 
   kamin_herstellen: {
+    title: string;
     description: string;
     base: number;
     ratePerM3: number;
   };
 
   aufz_tuerchen: {
+    title: string;
     description: string;
     ratePerPiece: number;
   };

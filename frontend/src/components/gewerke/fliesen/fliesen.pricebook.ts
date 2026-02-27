@@ -1,4 +1,32 @@
 // fliesen.pricebook.ts
+export type FliesenPriceBook = {
+  bestand: {
+    title: string;
+    description: string;
+    ranges: RangePrice[];
+  };
+
+  neuBadWc: {
+    title: string;
+    description: string;
+    requiresAbbruchBelag: boolean;
+    ranges: RangePrice[];
+  };
+
+  neuVrkue: {
+    title: string;
+    description: string;
+    requiresAbbruchBelag: boolean;
+    ranges: RangePrice[];
+  };
+
+  einzelflaechen: {
+    title: string;
+    description?: string;
+    base: number;
+    ratePerM2: number;
+  };
+};
 
 export type RangePrice = {
   min: number | null;
@@ -6,7 +34,7 @@ export type RangePrice = {
   price: number;
 };
 
-export const FLIESEN_PRICEBOOK = {
+export const FLIESEN_PRICEBOOK: FliesenPriceBook = {
   bestand: {
     title: "Bestand",
     description:

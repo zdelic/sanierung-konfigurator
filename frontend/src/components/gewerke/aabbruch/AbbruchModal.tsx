@@ -1,6 +1,7 @@
 import Modal from "../../Modal";
-import { ABBRUCH_PRICEBOOK } from "./abbruch.pricebook";
 import { calcAbbruchParts, type AbbruchState, type Mode } from "./abbruch.calc";
+import type { AbbruchPriceBook } from "./abbruch.pricebook";
+import type { ReactNode } from "react";
 
 function formatEUR(value: number) {
   return new Intl.NumberFormat("de-AT", {
@@ -14,7 +15,7 @@ function clampNum(v: string | number) {
   return Number.isFinite(n) ? Math.max(0, n) : 0;
 }
 
-function Pill(props: { children: React.ReactNode }) {
+function Pill(props: { children: ReactNode }) {
   return (
     <span className="inline-flex items-center rounded-full bg-white/10 px-2.5 py-1 text-[11px] text-slate-200 ring-1 ring-white/15">
       {props.children}
@@ -121,18 +122,48 @@ function Qty(props: {
   );
 }
 
-export type { AbbruchState };
-
 export default function AbbruchModal(props: {
   open: boolean;
   wohnflaecheM2: number;
   value: AbbruchState;
   onChange: (next: AbbruchState) => void;
   onClose: () => void;
+  pricebook: AbbruchPriceBook | null;
 }) {
   const m2 = Math.max(0, Number(props.wohnflaecheM2 || 0));
   const s = props.value;
-  const parts = calcAbbruchParts(m2, s);
+
+  const pb = props.pricebook;
+  if (!pb) {
+    return (
+      <Modal
+        open={props.open}
+        title="Abbruch"
+        subtitle="Preisbuch wird geladen…"
+        onClose={props.onClose}
+      >
+        <div className="p-6 text-slate-300">Loading…</div>
+      </Modal>
+    );
+  }
+
+  const parts = calcAbbruchParts(m2, s, pb);
+
+  function pickRange<T extends { min: number | null; max: number | null }>(
+    value: number,
+    ranges: T[],
+  ) {
+    for (const r of ranges) {
+      const minOk = r.min == null ? true : value >= r.min;
+      const maxOk = r.max == null ? true : value <= r.max;
+      if (minOk && maxOk) return r;
+    }
+    return ranges[ranges.length - 1];
+  }
+
+  const belagRange = pickRange(m2, pb.belag.voll);
+  const estrichRange = pickRange(m2, pb.estrich.voll);
+  const innentuerenRange = pickRange(m2, pb.innentueren.voll);
 
   return (
     <Modal
@@ -140,6 +171,14 @@ export default function AbbruchModal(props: {
       title="Abbruch"
       subtitle={`Wohnfläche (global): ${m2} m²`}
       onClose={props.onClose}
+      headerRight={
+        <div className="text-right">
+          <div className="text-xs text-slate-400">Gesamt</div>
+          <div className="text-lg font-semibold text-emerald-400">
+            {formatEUR(parts.total)}
+          </div>
+        </div>
+      }
     >
       <div className="grid gap-5">
         {/* NOTE */}
@@ -155,10 +194,12 @@ export default function AbbruchModal(props: {
 
         {/* BELAG */}
         <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
-          <div className="text-sm font-semibold">Belag</div>
-          <div className="mt-1 text-xs text-slate-400">
-            {ABBRUCH_PRICEBOOK.belag.description}
-          </div>
+          <div className="text-sm font-semibold">{belagRange.title}</div>
+          {belagRange.description ? (
+            <div className="mt-1 text-xs text-slate-400 whitespace-pre-line">
+              {belagRange.description}
+            </div>
+          ) : null}
 
           <div className="mt-3 flex flex-wrap gap-2">
             <RadioPill
@@ -223,8 +264,8 @@ export default function AbbruchModal(props: {
                   suffix="m²"
                 />
                 <div className="text-xs text-slate-400">
-                  Formel: {formatEUR(ABBRUCH_PRICEBOOK.belag.teil.base)} +{" "}
-                  {ABBRUCH_PRICEBOOK.belag.teil.rate.toFixed(2)} €/m²
+                  Formel: {formatEUR(pb.belag.teil.base)} +{" "}
+                  {pb.belag.teil.rate.toFixed(2)} €/m²
                 </div>
                 <div className="text-sm font-semibold">
                   {formatEUR(parts.belagTeil)}
@@ -240,10 +281,12 @@ export default function AbbruchModal(props: {
 
         {/* ESTRICH */}
         <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
-          <div className="text-sm font-semibold">Estrich</div>
-          <div className="mt-1 text-xs text-slate-400">
-            {ABBRUCH_PRICEBOOK.estrich.description}
-          </div>
+          <div className="text-sm font-semibold">{estrichRange.title}</div>
+          {estrichRange.description ? (
+            <div className="mt-1 text-xs text-slate-400 whitespace-pre-line">
+              {estrichRange.description}
+            </div>
+          ) : null}
 
           <div className="mt-3 flex flex-wrap gap-2">
             <RadioPill
@@ -308,8 +351,8 @@ export default function AbbruchModal(props: {
                   suffix="m²"
                 />
                 <div className="text-xs text-slate-400">
-                  Formel: {formatEUR(ABBRUCH_PRICEBOOK.estrich.teil.base)} +{" "}
-                  {ABBRUCH_PRICEBOOK.estrich.teil.rate.toFixed(2)} €/m²
+                  Formel: {formatEUR(pb.estrich.teil.base)} +{" "}
+                  {pb.estrich.teil.rate.toFixed(2)} €/m²
                 </div>
                 <div className="text-sm font-semibold">
                   {formatEUR(parts.estrichTeil)}
@@ -325,10 +368,12 @@ export default function AbbruchModal(props: {
 
         {/* TÜREN (✅ ekskluzivno: off/voll/teil) */}
         <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
-          <div className="text-sm font-semibold">Innentüren</div>
-          <div className="mt-1 text-xs text-slate-400">
-            {ABBRUCH_PRICEBOOK.innentueren.description}
-          </div>
+          <div className="text-sm font-semibold">{innentuerenRange.title}</div>
+          {innentuerenRange.description ? (
+            <div className="mt-1 text-xs text-slate-400 whitespace-pre-line">
+              {innentuerenRange.description}
+            </div>
+          ) : null}
 
           <div className="mt-3 flex flex-wrap gap-2">
             <RadioPill
@@ -397,7 +442,7 @@ export default function AbbruchModal(props: {
               <div className="grid gap-3">
                 <SwitchRow
                   label="Einzelzarge"
-                  description={ABBRUCH_PRICEBOOK.tuerenTeil.zarge.description}
+                  description={pb.tuerenTeil.zarge.description}
                   checked={s.innentuerZargeOn}
                   price={parts.innentuerZarge}
                   onChange={(v) =>
@@ -420,19 +465,15 @@ export default function AbbruchModal(props: {
                     />
                     <div className="mt-2 text-xs text-slate-400">
                       Formel:
-                      {formatEUR(
-                        ABBRUCH_PRICEBOOK.tuerenTeil.zarge.teil.base,
-                      )}{" "}
-                      + (
-                      {ABBRUCH_PRICEBOOK.tuerenTeil.zarge.teil.rate.toFixed(2)}{" "}
-                      € × Stk.)
+                      {formatEUR(pb.tuerenTeil.zarge.teil.base)} + (
+                      {pb.tuerenTeil.zarge.teil.rate.toFixed(2)} € × Stk.)
                     </div>
                   </div>
                 ) : null}
 
                 <SwitchRow
                   label="Einzeltürblatt"
-                  description={ABBRUCH_PRICEBOOK.tuerenTeil.blatt.description}
+                  description={pb.tuerenTeil.blatt.description}
                   checked={s.innentuerBlattOn}
                   price={parts.innentuerBlatt}
                   onChange={(v) =>
@@ -455,12 +496,8 @@ export default function AbbruchModal(props: {
                     />
                     <div className="mt-2 text-xs text-slate-400">
                       Formel:
-                      {formatEUR(
-                        ABBRUCH_PRICEBOOK.tuerenTeil.blatt.teil.base,
-                      )}{" "}
-                      +{" "}
-                      {ABBRUCH_PRICEBOOK.tuerenTeil.blatt.teil.rate.toFixed(2)}{" "}
-                      € × Stk.
+                      {formatEUR(pb.tuerenTeil.blatt.teil.base)} +{" "}
+                      {pb.tuerenTeil.blatt.teil.rate.toFixed(2)} € × Stk.
                     </div>
                   </div>
                 ) : null}
@@ -481,8 +518,8 @@ export default function AbbruchModal(props: {
           {/* Eingangstür (odvojeno) */}
           <div className="mt-4">
             <SwitchRow
-              label="Eingangstürzarge samt Türblatt"
-              description={ABBRUCH_PRICEBOOK.tuerenTeil.eingang.description}
+              label={pb.tuerenTeil.eingang.title}
+              description={pb.tuerenTeil.eingang.description}
               checked={s.eingangstuer}
               price={parts.eingangstuer}
               onChange={(v) => props.onChange({ ...s, eingangstuer: v })}
@@ -493,8 +530,8 @@ export default function AbbruchModal(props: {
         {/* WÄNDE / DECKE (Teilleistungen) */}
         <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
           <SwitchRow
-            label="Abbruch Teilleistungen – Wände und Decke"
-            description="Unterpositionen anzeigen/ausblenden (Berechnung erst bei Menge > 0)."
+            label={pb.waendeDecke.title}
+            description={pb.waendeDecke.description}
             checked={s.waendeDeckeOpen}
             price={parts.waendeDecke}
             onChange={(v) => props.onChange({ ...s, waendeDeckeOpen: v })}
@@ -510,30 +547,21 @@ export default function AbbruchModal(props: {
                 {/* Mauerwerk */}
                 <div>
                   <Qty
-                    label={
-                      ABBRUCH_PRICEBOOK.waendeDecke.positions.mauerwerk.label
-                    }
+                    label={pb.waendeDecke.positions.mauerwerk.label}
                     value={s.mauerwerkQty}
                     onChange={(v) => props.onChange({ ...s, mauerwerkQty: v })}
                     suffix="m²"
                   />
                   <div className="mt-1 text-xs text-slate-400">
-                    Grundpauschale:{" "}
-                    {formatEUR(ABBRUCH_PRICEBOOK.waendeDecke.base)} +{" "}
-                    {ABBRUCH_PRICEBOOK.waendeDecke.positions.mauerwerk.rate.toFixed(
-                      2,
-                    )}{" "}
-                    €/m²
+                    Grundpauschale: {formatEUR(pb.waendeDecke.base)} +{" "}
+                    {pb.waendeDecke.positions.mauerwerk.rate.toFixed(2)} €/m²
                   </div>
                 </div>
 
                 {/* Vorsatzschale */}
                 <div>
                   <Qty
-                    label={
-                      ABBRUCH_PRICEBOOK.waendeDecke.positions.vorsatzschale
-                        .label
-                    }
+                    label={pb.waendeDecke.positions.vorsatzschale.label}
                     value={s.vorsatzschaleQty}
                     onChange={(v) =>
                       props.onChange({ ...s, vorsatzschaleQty: v })
@@ -541,11 +569,8 @@ export default function AbbruchModal(props: {
                     suffix="m²"
                   />
                   <div className="mt-1 text-xs text-slate-400">
-                    Grundpauschale:{" "}
-                    {formatEUR(ABBRUCH_PRICEBOOK.waendeDecke.base)} +{" "}
-                    {ABBRUCH_PRICEBOOK.waendeDecke.positions.vorsatzschale.rate.toFixed(
-                      2,
-                    )}{" "}
+                    Grundpauschale: {formatEUR(pb.waendeDecke.base)} +{" "}
+                    {pb.waendeDecke.positions.vorsatzschale.rate.toFixed(2)}{" "}
                     €/m²
                   </div>
                 </div>
@@ -553,28 +578,21 @@ export default function AbbruchModal(props: {
                 {/* Decke / Verkleidungen */}
                 <div>
                   <Qty
-                    label={ABBRUCH_PRICEBOOK.waendeDecke.positions.decke.label}
+                    label={pb.waendeDecke.positions.decke.label}
                     value={s.deckeQty}
                     onChange={(v) => props.onChange({ ...s, deckeQty: v })}
                     suffix="m²"
                   />
                   <div className="mt-1 text-xs text-slate-400">
-                    Grundpauschale:{" "}
-                    {formatEUR(ABBRUCH_PRICEBOOK.waendeDecke.base)} +{" "}
-                    {ABBRUCH_PRICEBOOK.waendeDecke.positions.decke.rate.toFixed(
-                      2,
-                    )}{" "}
-                    €/m²
+                    Grundpauschale: {formatEUR(pb.waendeDecke.base)} +{" "}
+                    {pb.waendeDecke.positions.decke.rate.toFixed(2)} €/m²
                   </div>
                 </div>
 
                 {/* Trockenbauwände */}
                 <div>
                   <Qty
-                    label={
-                      ABBRUCH_PRICEBOOK.waendeDecke.positions.trockenbauwaende
-                        .label
-                    }
+                    label={pb.waendeDecke.positions.trockenbauwaende.label}
                     value={s.trockenbauwaendeQty}
                     onChange={(v) =>
                       props.onChange({ ...s, trockenbauwaendeQty: v })
@@ -582,11 +600,8 @@ export default function AbbruchModal(props: {
                     suffix="m²"
                   />
                   <div className="mt-1 text-xs text-slate-400">
-                    Grundpauschale:{" "}
-                    {formatEUR(ABBRUCH_PRICEBOOK.waendeDecke.base)} +{" "}
-                    {ABBRUCH_PRICEBOOK.waendeDecke.positions.trockenbauwaende.rate.toFixed(
-                      2,
-                    )}{" "}
+                    Grundpauschale: {formatEUR(pb.waendeDecke.base)} +{" "}
+                    {pb.waendeDecke.positions.trockenbauwaende.rate.toFixed(2)}{" "}
                     €/m²
                   </div>
                 </div>
@@ -594,28 +609,21 @@ export default function AbbruchModal(props: {
                 {/* Kamin */}
                 <div>
                   <Qty
-                    label={ABBRUCH_PRICEBOOK.waendeDecke.positions.kamin.label}
+                    label={pb.waendeDecke.positions.kamin.label}
                     value={s.kaminQty}
                     onChange={(v) => props.onChange({ ...s, kaminQty: v })}
                     suffix="m²"
                   />
                   <div className="mt-1 text-xs text-slate-400">
-                    Grundpauschale:{" "}
-                    {formatEUR(ABBRUCH_PRICEBOOK.waendeDecke.base)} +{" "}
-                    {ABBRUCH_PRICEBOOK.waendeDecke.positions.kamin.rate.toFixed(
-                      2,
-                    )}{" "}
-                    €/m²
+                    Grundpauschale: {formatEUR(pb.waendeDecke.base)} +{" "}
+                    {pb.waendeDecke.positions.kamin.rate.toFixed(2)} €/m²
                   </div>
                 </div>
 
                 {/* Türdurchbruch */}
                 <div>
                   <Qty
-                    label={
-                      ABBRUCH_PRICEBOOK.waendeDecke.positions.tuerdurchbruch
-                        .label
-                    }
+                    label={pb.waendeDecke.positions.tuerdurchbruch.label}
                     value={s.tuerdurchbruchQty}
                     onChange={(v) =>
                       props.onChange({ ...s, tuerdurchbruchQty: v })
@@ -623,11 +631,8 @@ export default function AbbruchModal(props: {
                     suffix="Stk."
                   />
                   <div className="mt-1 text-xs text-slate-400">
-                    Grundpauschale:{" "}
-                    {formatEUR(ABBRUCH_PRICEBOOK.waendeDecke.base)} +{" "}
-                    {ABBRUCH_PRICEBOOK.waendeDecke.positions.tuerdurchbruch.rate.toFixed(
-                      2,
-                    )}{" "}
+                    Grundpauschale: {formatEUR(pb.waendeDecke.base)} +{" "}
+                    {pb.waendeDecke.positions.tuerdurchbruch.rate.toFixed(2)}{" "}
                     €/Stk.
                   </div>
                 </div>
@@ -637,14 +642,14 @@ export default function AbbruchModal(props: {
         </div>
 
         {/* FOOTER TOTAL */}
-        <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
+        {/* <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
           <div className="flex items-center justify-between">
             <div className="text-sm text-slate-300">Summe Abbruch</div>
             <div className="text-lg font-semibold">
               {formatEUR(parts.total)}
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
     </Modal>
   );

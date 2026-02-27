@@ -1,10 +1,17 @@
 // tischler.calc.ts
 import {
-  TISCHLER_PRICEBOOK as pb,
   clamp0,
   pickRangePrice,
   round2,
+  type TischlerPriceBook,
+  TISCHLER_QTY_KEYS,
 } from "./tischler.pricebook";
+
+function defaultQty(): Record<string, number> {
+  const m: Record<string, number> = {};
+  for (const k of TISCHLER_QTY_KEYS) m[k] = 0;
+  return m;
+}
 
 export type TischlerState = {
   note: string;
@@ -23,30 +30,6 @@ export type TischlerState = {
   neuZargenOn: boolean;
   neuZargenDepsAccepted: boolean;
 };
-
-function defaultQty(): Record<string, number> {
-  const keys = [
-    "sanierung_2m2_simple",
-    "aufzahlung_2m2_aufwendig",
-    "sanierung_4m2_simple",
-    "aufzahlung_4m2_aufwendig",
-    "neu_innentueren_glasausschnitt",
-    "innentuere_80x200",
-    "zarge_80x200",
-    "whg_eingang_h250",
-    "whg_eingang_2fluegelig_h250",
-    "balkon_bis3",
-    "balkon_ueber3",
-    "kasten_bis3",
-    "kasten_3_5",
-    "anstrich_eingang",
-    "anstrich_balkon",
-    "anstrich_kasten",
-  ];
-  const m: Record<string, number> = {};
-  for (const k of keys) m[k] = 0;
-  return m;
-}
 
 export const DEFAULT_TISCHLER_STATE: TischlerState = {
   note: "",
@@ -74,7 +57,11 @@ function calcRateOnly(rate: number, qty: number) {
   return round2(q * rate);
 }
 
-export function calcTischlerParts(globalM2: number, s: TischlerState) {
+export function calcTischlerParts(
+  globalM2: number,
+  s: TischlerState,
+  pb: TischlerPriceBook,
+) {
   const m2 = clamp0(globalM2);
 
   const bestand = s.bestandOn ? pickRangePrice(m2, pb.bestand.ranges) : 0;
@@ -156,6 +143,10 @@ export function calcTischlerParts(globalM2: number, s: TischlerState) {
   };
 }
 
-export function calcTischlerTotal(globalM2: number, s: TischlerState) {
-  return calcTischlerParts(globalM2, s).total;
+export function calcTischlerTotal(
+  globalM2: number,
+  s: TischlerState,
+  pb: TischlerPriceBook,
+) {
+  return calcTischlerParts(globalM2, s, pb).total;
 }

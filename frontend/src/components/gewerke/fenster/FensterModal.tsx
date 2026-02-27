@@ -1,15 +1,11 @@
 import Modal from "../../Modal";
-import {
-  FENSTER_PRICEBOOK as pb,
-  clamp0,
-  formatEUR,
-} from "./fenster.pricebook";
+import { clamp0, formatEUR } from "./fenster.pricebook";
+import type { FensterPriceBook } from "./fenster.pricebook.adapter";
 import {
   calcFensterKonfiguratorDerived,
   calcFensterParts,
   type FensterState,
   type FensterTyp,
-  type SonnenschutzTyp,
 } from "./fenster.calc";
 
 // ✅ slike: stavi ih u src/assets
@@ -183,10 +179,24 @@ export default function FensterModal(props: {
   value: FensterState;
   onChange: (next: FensterState) => void;
   onClose: () => void;
+  pricebook: FensterPriceBook | null;
 }) {
+  const pb = props.pricebook;
+  if (!pb) {
+    return (
+      <Modal
+        open={props.open}
+        title="Fenster"
+        subtitle="Preisbuch wird geladen…"
+        onClose={props.onClose}
+      >
+        <div className="p-6 text-slate-300">Loading…</div>
+      </Modal>
+    );
+  }
   const m2 = clamp0(props.wohnflaecheM2);
   const s = props.value;
-  const parts = calcFensterParts(m2, s);
+  const parts = calcFensterParts(m2, s, pb);
   const d = calcFensterKonfiguratorDerived(s);
 
   return (
@@ -195,6 +205,14 @@ export default function FensterModal(props: {
       title="Fenster"
       subtitle={`Wohnfläche (global): ${m2} m²`}
       onClose={props.onClose}
+      headerRight={
+        <div className="text-right">
+          <div className="text-xs text-slate-400">Gesamt</div>
+          <div className="text-lg font-semibold text-emerald-400">
+            {formatEUR(parts.total)}
+          </div>
+        </div>
+      }
     >
       <div className="grid gap-5">
         <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
@@ -303,8 +321,8 @@ export default function FensterModal(props: {
             B) FENSTER KONFIGURATOR (skriven iza checkboxa)
         ============================ */}
         <Card
-          title={pb.konfigurator.title}
-          description={pb.konfigurator.subtitle}
+          title="Fenster Konfigurator (Fenstertausch)"
+          description="Rohbaumaß, Fenstertyp & Sonnenschutz – Berechnung nach Fensterfläche (m²)"
           checked={s.konfiguratorOn}
           price={parts.totalKonfigurator}
           onToggle={(v) =>
@@ -384,22 +402,86 @@ export default function FensterModal(props: {
               <Radio<FensterTyp>
                 value="holz_alu"
                 current={s.fensterTyp}
-                label={`Holz-Alu-Fenster (${pb.typ_holz_alu_per_m2.toFixed(2)} €/m²)`}
+                label={`${pb.typ_holz_alu_title} (${pb.typ_holz_alu_per_m2.toFixed(2)} €/m²)`}
                 onChange={(v) => props.onChange({ ...s, fensterTyp: v })}
               />
               <Radio<FensterTyp>
                 value="pvc_alu"
                 current={s.fensterTyp}
-                label={`PVC-Alu-Fenster (${pb.typ_pvc_alu_per_m2.toFixed(2)} €/m²)`}
+                label={`${pb.typ_pvc_alu_title} (${pb.typ_pvc_alu_per_m2.toFixed(2)} €/m²)`}
                 onChange={(v) => props.onChange({ ...s, fensterTyp: v })}
               />
               <Radio<FensterTyp>
                 value="pvc"
                 current={s.fensterTyp}
-                label={`PVC-Fenster (${pb.typ_pvc_per_m2.toFixed(2)} €/m²)`}
+                label={`${pb.typ_pvc_title} (${pb.typ_pvc_per_m2.toFixed(2)} €/m²)`}
                 onChange={(v) => props.onChange({ ...s, fensterTyp: v })}
               />
             </div>
+          </div>
+          <div className="mt-4 rounded-2xl bg-white/5 p-3 ring-1 ring-white/10">
+            <Row
+              left={
+                <div className="min-w-0">
+                  <div className="text-sm text-slate-200">
+                    <Row
+                      left={pb.grundpauschale_fenstertausch_title}
+                      right={formatEUR(parts.k_grundpauschale)}
+                    />
+                  </div>
+                  {pb.grundpauschale_fenstertausch_desc ? (
+                    <div className="mt-1 text-xs text-slate-400 whitespace-pre-line">
+                      {pb.grundpauschale_fenstertausch_desc}
+                    </div>
+                  ) : null}
+                </div>
+              }
+              right={formatEUR(parts.k_grundpauschale)}
+            />
+
+            <Row
+              left={
+                <div className="min-w-0">
+                  <div className="text-sm text-slate-200">
+                    <Row
+                      left={pb.abbruch_bestehender_fenster_title}
+                      right={formatEUR(parts.k_abbruchFenster)}
+                    />
+                  </div>
+                  {pb.abbruch_bestehender_fenster_desc ? (
+                    <div className="mt-1 text-xs text-slate-400 whitespace-pre-line">
+                      {pb.abbruch_bestehender_fenster_desc}
+                    </div>
+                  ) : null}
+                </div>
+              }
+              right={formatEUR(parts.k_abbruchFenster)}
+            />
+
+            <Row
+              left={
+                <div className="min-w-0">
+                  <div className="text-sm text-slate-200">Fenstertyp</div>
+
+                  {pb.typ_holz_alu_desc ||
+                  pb.typ_pvc_alu_desc ||
+                  pb.typ_pvc_desc ? (
+                    <div className="mt-1 space-y-1 text-xs text-slate-400 whitespace-pre-line">
+                      {pb.typ_holz_alu_desc ? (
+                        <div>Holz-Alu: {pb.typ_holz_alu_desc}</div>
+                      ) : null}
+                      {pb.typ_pvc_alu_desc ? (
+                        <div>PVC-Alu: {pb.typ_pvc_alu_desc}</div>
+                      ) : null}
+                      {pb.typ_pvc_desc ? (
+                        <div>PVC: {pb.typ_pvc_desc}</div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              }
+              right={formatEUR(parts.k_fensterTyp)}
+            />
           </div>
 
           {/* aufzahlungen + sonnenschutz (kompakt prikaz kroz totals koje već računamo) */}
@@ -410,8 +492,16 @@ export default function FensterModal(props: {
 
             <div className="mt-3 grid gap-3">
               <div className="flex items-center justify-between rounded-2xl bg-white/5 px-4 py-3 ring-1 ring-white/10">
-                <div className="text-sm text-slate-200">
-                  Blindstock ({pb.blindstock_per_m2.toFixed(2)} €/m²)
+                <div className="min-w-0">
+                  <div className="text-sm text-slate-200">
+                    {pb.blindstock_title} ({pb.blindstock_per_m2.toFixed(2)}{" "}
+                    €/m²)
+                  </div>
+                  {pb.blindstock_desc ? (
+                    <div className="mt-1 text-xs text-slate-400 whitespace-pre-line">
+                      {pb.blindstock_desc}
+                    </div>
+                  ) : null}
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="text-sm font-semibold">
@@ -425,8 +515,16 @@ export default function FensterModal(props: {
               </div>
 
               <div className="flex items-center justify-between rounded-2xl bg-white/5 px-4 py-3 ring-1 ring-white/10">
-                <div className="text-sm text-slate-200">
-                  Mehrteiligkeit ({pb.mehrteiligkeit_per_m2.toFixed(2)} €/m²)
+                <div className="min-w-0">
+                  <div className="text-sm text-slate-200">
+                    {pb.mehrteiligkeit_title} (
+                    {pb.mehrteiligkeit_per_m2.toFixed(2)} €/m²)
+                  </div>
+                  {pb.mehrteiligkeit_desc ? (
+                    <div className="mt-1 text-xs text-slate-400 whitespace-pre-line">
+                      {pb.mehrteiligkeit_desc}
+                    </div>
+                  ) : null}
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="text-sm font-semibold">
@@ -442,11 +540,16 @@ export default function FensterModal(props: {
               </div>
             </div>
 
-            <div className="mt-4 grid gap-4 lg:grid-cols-3">
+            <div className="mt-4 grid gap-3">
               <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
                 <div className="flex items-center justify-between">
                   <div className="text-sm font-semibold">
-                    Schallschutz 43 dB
+                    {pb.schallschutz_43db_title}
+                    {pb.schallschutz_43db_desc ? (
+                      <div className="mt-1 text-xs text-slate-400 whitespace-pre-line">
+                        {pb.schallschutz_43db_desc}
+                      </div>
+                    ) : null}
                   </div>
                   <Switch
                     checked={s.schallschutzOn}
@@ -482,7 +585,12 @@ export default function FensterModal(props: {
               <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
                 <div className="flex items-center justify-between">
                   <div className="text-sm font-semibold">
-                    Nicht transparente Gläser
+                    {pb.nicht_transparent_title}
+                    {pb.nicht_transparent_desc ? (
+                      <div className="mt-1 pr-4 text-xs text-slate-400 whitespace-pre-line">
+                        {pb.nicht_transparent_desc}
+                      </div>
+                    ) : null}
                   </div>
                   <Switch
                     checked={s.nichtTransparentOn}
@@ -517,7 +625,14 @@ export default function FensterModal(props: {
 
               <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
                 <div className="flex items-center justify-between">
-                  <div className="text-sm font-semibold">Oberlichten</div>
+                  <div className="text-sm font-semibold">
+                    {pb.oberlichte_title}
+                    {pb.oberlichte_desc ? (
+                      <div className="mt-1 text-xs text-slate-400 whitespace-pre-line">
+                        {pb.oberlichte_desc}
+                      </div>
+                    ) : null}
+                  </div>
                   <Switch
                     checked={s.oberlichteOn}
                     onChange={(v) =>
@@ -553,7 +668,14 @@ export default function FensterModal(props: {
             <div className="mt-4 rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-sm font-semibold">Einbau von Lüfter</div>
+                  <div className="text-sm font-semibold">
+                    {pb.luefter_title}
+                    {pb.luefter_desc ? (
+                      <div className="mt-1 text-xs text-slate-400 whitespace-pre-line">
+                        {pb.luefter_desc}
+                      </div>
+                    ) : null}
+                  </div>
                   <div className="text-xs text-slate-400">
                     {pb.luefter_per_stk.toFixed(2)} €/Stk
                   </div>
@@ -594,7 +716,12 @@ export default function FensterModal(props: {
 
             <div className="mt-3 flex items-center justify-between rounded-2xl bg-white/5 px-4 py-3 ring-1 ring-white/10">
               <div className="text-sm text-slate-200">
-                Abbruch bestehender Sonnenschutz
+                {pb.abbruch_sonnenschutz_title}
+                {pb.abbruch_sonnenschutz_desc ? (
+                  <div className="mt-1 text-xs text-slate-400 whitespace-pre-line">
+                    {pb.abbruch_sonnenschutz_desc}
+                  </div>
+                ) : null}
               </div>
               <div className="flex items-center gap-3">
                 <div className="text-sm font-semibold">
@@ -611,32 +738,127 @@ export default function FensterModal(props: {
 
             <div className="mt-3 grid gap-2">
               <div className="text-xs text-slate-400">
-                Montage-Typ (exklusiv)
+                Montagespreise für Sonnenschutz beziehen sich auf die
+                Fensterfläche (m²) und werden nur auf die Fläche der Fenster mit
+                aktiviertem Sonnenschutz angewendet. Beispiel: Wenn
+                "Außenjalousien" aktiviert ist, wird der Montagepreis pro m² nur
+                auf die Gesamtfensterfläche angewendet.
               </div>
-              <Radio<SonnenschutzTyp>
-                value="off"
-                current={s.sonnenschutzTyp}
-                label="Keine Montage"
-                onChange={(v) => props.onChange({ ...s, sonnenschutzTyp: v })}
-              />
-              <Radio<SonnenschutzTyp>
-                value="innenjalousie"
-                current={s.sonnenschutzTyp}
-                label={`Innenjalousien (${pb.montage_innenjalousien_per_m2.toFixed(2)} €/m²)`}
-                onChange={(v) => props.onChange({ ...s, sonnenschutzTyp: v })}
-              />
-              <Radio<SonnenschutzTyp>
-                value="aussenjalousie"
-                current={s.sonnenschutzTyp}
-                label={`Außenjalousien (${pb.montage_aussenjalousien_per_m2.toFixed(2)} €/m²)`}
-                onChange={(v) => props.onChange({ ...s, sonnenschutzTyp: v })}
-              />
-              <Radio<SonnenschutzTyp>
-                value="blinos"
-                current={s.sonnenschutzTyp}
-                label={`BLINOS ROLLO (${pb.montage_blinos_rollo_per_m2.toFixed(2)} €/m²)`}
-                onChange={(v) => props.onChange({ ...s, sonnenschutzTyp: v })}
-              />
+
+              {/* Innenjalousien */}
+              <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold">
+                      {pb.montage_innenjalousien_title}
+                    </div>
+                    {pb.montage_innenjalousien_desc ? (
+                      <div className="mt-1 text-xs text-slate-400 whitespace-pre-line">
+                        {pb.montage_innenjalousien_desc}
+                      </div>
+                    ) : null}
+                    <div className="mt-2 text-xs text-slate-400">
+                      {pb.montage_innenjalousien_per_m2.toFixed(2)} €/m²
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 shrink-0">
+                    <div className="text-sm font-semibold">
+                      {formatEUR(
+                        s.konfiguratorOn && s.sonnenschutzInnenOn
+                          ? pb.montage_innenjalousien_per_m2 * d.flaecheTotal
+                          : 0,
+                      )}
+                    </div>
+                    <Switch
+                      checked={s.sonnenschutzInnenOn}
+                      onChange={(v) =>
+                        props.onChange({ ...s, sonnenschutzInnenOn: v })
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Außenjalousien */}
+              <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold">
+                      {pb.montage_aussenjalousien_title}
+                    </div>
+
+                    {pb.montage_aussenjalousien_desc ? (
+                      <div className="mt-1 text-xs text-slate-400 whitespace-pre-line">
+                        {pb.montage_aussenjalousien_desc}
+                      </div>
+                    ) : null}
+
+                    <div className="mt-2 text-xs text-slate-400">
+                      {pb.montage_aussenjalousien_per_m2.toFixed(2)} €/m²
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 shrink-0">
+                    <div className="text-sm font-semibold">
+                      {formatEUR(
+                        s.konfiguratorOn && s.sonnenschutzAussenjalousieOn
+                          ? pb.montage_aussenjalousien_per_m2 * d.flaecheTotal
+                          : 0,
+                      )}
+                    </div>
+
+                    <Switch
+                      checked={s.sonnenschutzAussenjalousieOn}
+                      onChange={(v) =>
+                        props.onChange({
+                          ...s,
+                          sonnenschutzAussenjalousieOn: v,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* BLINOS ROLLO */}
+              <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold">
+                      {pb.montage_blinos_rollo_title}
+                    </div>
+
+                    {pb.montage_blinos_rollo_desc ? (
+                      <div className="mt-1 text-xs text-slate-400 whitespace-pre-line">
+                        {pb.montage_blinos_rollo_desc}
+                      </div>
+                    ) : null}
+
+                    <div className="mt-2 text-xs text-slate-400">
+                      {pb.montage_blinos_rollo_per_m2.toFixed(2)} €/m²
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 shrink-0">
+                    <div className="text-sm font-semibold">
+                      {formatEUR(
+                        s.konfiguratorOn && s.sonnenschutzBlinosOn
+                          ? pb.montage_blinos_rollo_per_m2 * d.flaecheTotal
+                          : 0,
+                      )}
+                    </div>
+
+                    <Switch
+                      checked={s.sonnenschutzBlinosOn}
+                      onChange={(v) =>
+                        props.onChange({ ...s, sonnenschutzBlinosOn: v })
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+
               <Row
                 left="Summe Montage"
                 right={formatEUR(parts.k_sonnenschutzMontage)}
@@ -647,7 +869,12 @@ export default function FensterModal(props: {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-sm font-semibold">
-                    Aufzahlung Sonnenschutz (Aufputz)
+                    {pb.aufz_sonnenschutz_aufputz_title}
+                    {pb.aufz_sonnenschutz_aufputz_desc ? (
+                      <div className="mt-1 text-xs text-slate-400 whitespace-pre-line">
+                        {pb.aufz_sonnenschutz_aufputz_desc}
+                      </div>
+                    ) : null}
                   </div>
                   <div className="text-xs text-slate-400">
                     {pb.aufz_sonnenschutz_aufputz_per_m2.toFixed(2)} €/m²
@@ -686,22 +913,10 @@ export default function FensterModal(props: {
               ) : null}
             </div>
           </div>
-
-          <div className="mt-4 rounded-2xl bg-white/5 p-3 ring-1 ring-white/10">
-            <Row
-              left="Grundpauschale (einmalig)"
-              right={formatEUR(parts.k_grundpauschale)}
-            />
-            <Row
-              left="Abbruch bestehender Fenster"
-              right={formatEUR(parts.k_abbruchFenster)}
-            />
-            <Row left="Fenstertyp" right={formatEUR(parts.k_fensterTyp)} />
-          </div>
         </Card>
 
         {/* TOTAL */}
-        <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
+        {/* <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
           <div className="flex items-center justify-between">
             <div className="text-sm text-slate-300">
               Summe Fenster (inkl. Konfigurator)
@@ -716,7 +931,7 @@ export default function FensterModal(props: {
               ? `+ Konfigurator: ${formatEUR(parts.totalKonfigurator)}`
               : ""}
           </div>
-        </div>
+        </div> */}
       </div>
     </Modal>
   );

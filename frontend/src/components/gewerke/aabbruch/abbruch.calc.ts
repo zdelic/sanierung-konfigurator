@@ -1,8 +1,8 @@
 // abbruch.calc.ts
 import {
-  ABBRUCH_PRICEBOOK,
   pickRangePrice,
   type TeilPrice,
+  type AbbruchPriceBook,
 } from "./abbruch.pricebook";
 
 function round2(n: number) {
@@ -90,57 +90,42 @@ function calcTeil(teil: TeilPrice, qty: number) {
     return round2(teil.base + q * teil.rate);
   }
 
-  return round2((teil.base + teil.rate) * q);
+  return round2(teil.base + teil.rate * q);
 }
 
-export function calcAbbruchParts(globalM2: number, s: AbbruchState) {
+export function calcAbbruchParts(
+  globalM2: number,
+  s: AbbruchState,
+  pb: AbbruchPriceBook,
+) {
   const m2 = Math.max(0, Number(globalM2 || 0));
 
-  // BELAG
   const belagVoll =
-    s.belagMode === "voll"
-      ? pickRangePrice(m2, ABBRUCH_PRICEBOOK.belag.voll)
-      : 0;
-
+    s.belagMode === "voll" ? pickRangePrice(m2, pb.belag.voll) : 0;
   const belagTeil =
-    s.belagMode === "teil"
-      ? calcTeil(ABBRUCH_PRICEBOOK.belag.teil, s.belagTeilM2)
-      : 0;
+    s.belagMode === "teil" ? calcTeil(pb.belag.teil, s.belagTeilM2) : 0;
 
-  // ESTRICH
   const estrichVoll =
-    s.estrichMode === "voll"
-      ? pickRangePrice(m2, ABBRUCH_PRICEBOOK.estrich.voll)
-      : 0;
-
+    s.estrichMode === "voll" ? pickRangePrice(m2, pb.estrich.voll) : 0;
   const estrichTeil =
-    s.estrichMode === "teil"
-      ? calcTeil(ABBRUCH_PRICEBOOK.estrich.teil, s.estrichTeilM2)
-      : 0;
+    s.estrichMode === "teil" ? calcTeil(pb.estrich.teil, s.estrichTeilM2) : 0;
 
-  // INNENTÜREN (voll OR teil)
   const innentuerenVoll =
-    s.tuerenMode === "voll"
-      ? pickRangePrice(m2, ABBRUCH_PRICEBOOK.innentueren.voll)
-      : 0;
+    s.tuerenMode === "voll" ? pickRangePrice(m2, pb.innentueren.voll) : 0;
 
   const innentuerZarge =
     s.tuerenMode === "teil" && s.innentuerZargeOn && s.innentuerZargeQty > 0
-      ? calcTeil(ABBRUCH_PRICEBOOK.tuerenTeil.zarge.teil, s.innentuerZargeQty)
+      ? calcTeil(pb.tuerenTeil.zarge.teil, s.innentuerZargeQty)
       : 0;
 
   const innentuerBlatt =
     s.tuerenMode === "teil" && s.innentuerBlattOn && s.innentuerBlattQty > 0
-      ? calcTeil(ABBRUCH_PRICEBOOK.tuerenTeil.blatt.teil, s.innentuerBlattQty)
+      ? calcTeil(pb.tuerenTeil.blatt.teil, s.innentuerBlattQty)
       : 0;
 
-  const eingangstuer = s.eingangstuer
-    ? ABBRUCH_PRICEBOOK.tuerenTeil.eingang.pauschal
-    : 0;
+  const eingangstuer = s.eingangstuer ? pb.tuerenTeil.eingang.pauschal : 0;
 
-  // WÄNDE / DECKE:
-  // ✅ Grundpauschale (wd.base) se računa PO POZICIJI (ako qty > 0)
-  const wd = ABBRUCH_PRICEBOOK.waendeDecke;
+  const wd = pb.waendeDecke;
 
   function lineWithBase(qty: number, rate: number) {
     const q = Math.max(0, Number(qty || 0));
@@ -148,32 +133,13 @@ export function calcAbbruchParts(globalM2: number, s: AbbruchState) {
     return round2(wd.base + q * rate);
   }
 
-  const wd_mauerwerk = lineWithBase(
-    s.mauerwerkQty,
-    wd.positions.mauerwerk.rate,
-  );
-  const wd_vorsatzschale = lineWithBase(
-    s.vorsatzschaleQty,
-    wd.positions.vorsatzschale.rate,
-  );
-  const wd_decke = lineWithBase(s.deckeQty, wd.positions.decke.rate);
-  const wd_trockenbauwaende = lineWithBase(
-    s.trockenbauwaendeQty,
-    wd.positions.trockenbauwaende.rate,
-  );
-  const wd_kamin = lineWithBase(s.kaminQty, wd.positions.kamin.rate);
-  const wd_tuerdurchbruch = lineWithBase(
-    s.tuerdurchbruchQty,
-    wd.positions.tuerdurchbruch.rate,
-  );
-
   const waendeDecke = round2(
-    wd_mauerwerk +
-      wd_vorsatzschale +
-      wd_decke +
-      wd_trockenbauwaende +
-      wd_kamin +
-      wd_tuerdurchbruch,
+    lineWithBase(s.mauerwerkQty, wd.positions.mauerwerk.rate) +
+      lineWithBase(s.vorsatzschaleQty, wd.positions.vorsatzschale.rate) +
+      lineWithBase(s.deckeQty, wd.positions.decke.rate) +
+      lineWithBase(s.trockenbauwaendeQty, wd.positions.trockenbauwaende.rate) +
+      lineWithBase(s.kaminQty, wd.positions.kamin.rate) +
+      lineWithBase(s.tuerdurchbruchQty, wd.positions.tuerdurchbruch.rate),
   );
 
   const total = round2(
@@ -193,17 +159,19 @@ export function calcAbbruchParts(globalM2: number, s: AbbruchState) {
     belagTeil,
     estrichVoll,
     estrichTeil,
-
     innentuerenVoll,
     innentuerZarge,
     innentuerBlatt,
     eingangstuer,
-
     waendeDecke,
     total,
   };
 }
 
-export function calcAbbruchTotal(globalM2: number, s: AbbruchState) {
-  return calcAbbruchParts(globalM2, s).total;
+export function calcAbbruchTotal(
+  globalM2: number,
+  s: AbbruchState,
+  pb: AbbruchPriceBook,
+) {
+  return calcAbbruchParts(globalM2, s, pb).total;
 }

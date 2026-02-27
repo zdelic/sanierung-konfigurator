@@ -1,5 +1,26 @@
 // estrich.pricebook.ts
 
+export type EstrichPriceBook = {
+  neu6cm: {
+    title: string;
+    description: string;
+    ranges: RangePrice[];
+  };
+  teilleistungen: TeilLine[];
+  beschleuniger: {
+    title: string;
+    description: string;
+    ranges: RangePrice[];
+  };
+};
+
+export const ESTRICH_TEIL_KEYS = [
+  "einzelflaechen",
+  "verdübelung",
+  "trockenestrich",
+  "trockenestrich_ertuechtigung",
+] as const;
+
 export type RangePrice = {
   min: number | null; // inclusive
   max: number | null; // inclusive

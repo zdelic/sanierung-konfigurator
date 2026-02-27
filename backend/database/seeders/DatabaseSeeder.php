@@ -17,9 +17,27 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        User::firstOrCreate(
+            ['email' => 'test@example.com'],
+            ['name' => 'Test User', 'password' => bcrypt('password')]
+        );
+
+        $this->call([
+            RolesSeeder::class,
+
+            AbbruchPricebookSeeder::class,
+            BMSTPricebookSeeder::class,
+            TrockenbauPricebookSeeder::class,
+            EstrichPricebookSeeder::class,
+            FliesenPricebookSeeder::class,
+            BodenPricebookSeeder::class,
+            MalerPricebookSeeder::class,
+            TischlerPricebookSeeder::class,
+            FensterPricebookSeeder::class,
+            BalkonPricebookSeeder::class,
+            ElektroPricebookSeeder::class,
+            HaustechnikPricebookSeeder::class,
+            ReinigungPricebookSeeder::class,
         ]);
     }
 }

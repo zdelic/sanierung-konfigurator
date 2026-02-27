@@ -1,9 +1,10 @@
 // estrich.calc.ts
 import {
-  ESTRICH_PRICEBOOK,
   clamp0,
   pickRangePrice,
   round2,
+  type EstrichPriceBook,
+  ESTRICH_TEIL_KEYS,
 } from "./estrich.pricebook";
 
 export type EstrichState = {
@@ -27,7 +28,7 @@ export type EstrichState = {
 
 function defaultTeilM2() {
   const map: Record<string, number> = {};
-  for (const line of ESTRICH_PRICEBOOK.teilleistungen) map[line.key] = 0;
+  for (const k of ESTRICH_TEIL_KEYS) map[k] = 0;
   return map;
 }
 
@@ -42,35 +43,32 @@ export const DEFAULT_ESTRICH_STATE: EstrichState = {
   beschleunigerOn: false,
 };
 
-export function calcEstrichParts(globalM2: number, s: EstrichState) {
+export function calcEstrichParts(
+  globalM2: number,
+  s: EstrichState,
+  pb: EstrichPriceBook,
+) {
   const m2 = clamp0(globalM2);
-
-  // ✅ Neuherstellung is allowed only if deps accepted
   const neuEligible = s.neuOn && s.depsAccepted;
 
-  const neu = neuEligible
-    ? pickRangePrice(m2, ESTRICH_PRICEBOOK.neu6cm.ranges)
-    : 0;
-
+  const neu = neuEligible ? pickRangePrice(m2, pb.neu6cm.ranges) : 0;
   const beschleuniger =
     neuEligible && s.beschleunigerOn
-      ? pickRangePrice(m2, ESTRICH_PRICEBOOK.beschleuniger.ranges)
+      ? pickRangePrice(m2, pb.beschleuniger.ranges)
       : 0;
 
-  // Teilleistungen: base + rate*m2 for each line where m2>0
   const teilLines: Record<string, number> = {};
   let teilSum = 0;
 
   if (s.teilOn) {
-    for (const line of ESTRICH_PRICEBOOK.teilleistungen) {
+    for (const line of pb.teilleistungen) {
       const q = clamp0(s.teilM2[line.key]);
       const v = q > 0 ? round2(line.base + q * line.ratePerM2) : 0;
       teilLines[line.key] = v;
       teilSum += v;
     }
   } else {
-    for (const line of ESTRICH_PRICEBOOK.teilleistungen)
-      teilLines[line.key] = 0;
+    for (const line of pb.teilleistungen) teilLines[line.key] = 0;
   }
 
   const total = round2(neu + beschleuniger + teilSum);
@@ -85,6 +83,10 @@ export function calcEstrichParts(globalM2: number, s: EstrichState) {
   };
 }
 
-export function calcEstrichTotal(globalM2: number, s: EstrichState) {
-  return calcEstrichParts(globalM2, s).total;
+export function calcEstrichTotal(
+  globalM2: number,
+  s: EstrichState,
+  pb: EstrichPriceBook,
+) {
+  return calcEstrichParts(globalM2, s, pb).total;
 }

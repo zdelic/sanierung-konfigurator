@@ -1,10 +1,6 @@
 // haustechnik.calc.ts
-import {
-  HST_PRICEBOOK as pb,
-  clamp0,
-  pickRangePrice,
-  round2,
-} from "./haustechnik.pricebook";
+import { clamp0, pickRangePrice, round2 } from "./haustechnik.pricebook";
+import type { HaustechnikPriceBook } from "./haustechnik.pricebook.adapter";
 
 export type BelagChoice = "none" | "teppich" | "laminat" | "parkett";
 
@@ -173,6 +169,7 @@ function clampInt0(v: unknown) {
 export function calcHaustechnikParts(
   wohnflaecheM2: number,
   s: HaustechnikState,
+  pb: HaustechnikPriceBook,
 ) {
   const m2 = clamp0(wohnflaecheM2);
 
@@ -414,6 +411,7 @@ export function calcHaustechnikParts(
 export function calcHaustechnikTotal(
   wohnflaecheM2: number,
   s: HaustechnikState,
+  pb: HaustechnikPriceBook,
 ) {
-  return calcHaustechnikParts(wohnflaecheM2, s).total;
+  return calcHaustechnikParts(wohnflaecheM2, s, pb).total;
 }

@@ -1,10 +1,7 @@
 // ReinigungModal.tsx
 import Modal from "../../Modal";
-import {
-  REINIGUNG_PRICEBOOK as pb,
-  clamp0,
-  formatEUR,
-} from "./reinigung.pricebook";
+import { clamp0, formatEUR } from "./reinigung.pricebook";
+import type { ReinigungPriceBook } from "./reinigung.pricebook.adapter";
 import { calcReinigungParts, type ReinigungState } from "./reinigung.calc";
 
 function IconWrap(props: { children: React.ReactNode }) {
@@ -173,12 +170,27 @@ export default function ReinigungModal(props: {
   open: boolean;
   wohnflaecheM2: number;
   value: ReinigungState;
+  pricebook: ReinigungPriceBook | null;
   onChange: (next: ReinigungState) => void;
   onClose: () => void;
 }) {
   const s = props.value;
+  const pb = props.pricebook;
+
+  if (!pb) {
+    return (
+      <Modal
+        open={props.open}
+        title="Reinigung"
+        subtitle="Preisbuch wird geladen…"
+        onClose={props.onClose}
+      >
+        <div className="p-6 text-slate-300">Loading…</div>
+      </Modal>
+    );
+  }
   const m2 = clamp0(props.wohnflaecheM2);
-  const parts = calcReinigungParts(props.wohnflaecheM2, s);
+  const parts = calcReinigungParts(props.wohnflaecheM2, s, pb);
 
   const disabledAll = m2 <= 0;
 
@@ -206,6 +218,14 @@ export default function ReinigungModal(props: {
       title={pb.meta.title}
       subtitle={pb.meta.subtitle}
       onClose={props.onClose}
+      headerRight={
+        <div className="text-right">
+          <div className="text-xs text-slate-400">Gesamt</div>
+          <div className="text-lg font-semibold text-emerald-400">
+            {formatEUR(parts.total)}
+          </div>
+        </div>
+      }
     >
       <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
         <div className="text-xs text-slate-400">Zusätzliche Anmerkung</div>
@@ -276,14 +296,14 @@ export default function ReinigungModal(props: {
         </div>
 
         {/* Total */}
-        <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
+        {/* <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
           <div className="flex items-center justify-between">
             <div className="text-sm text-slate-300">Summe Reinigung</div>
             <div className="text-lg font-semibold">
               {formatEUR(parts.total)}
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
     </Modal>
   );

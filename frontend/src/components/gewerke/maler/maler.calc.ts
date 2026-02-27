@@ -1,9 +1,9 @@
 // maler.calc.ts
 import {
-  MALER_PRICEBOOK as pb,
   clamp0,
   pickRangePrice,
   round2,
+  type MalerPriceBook,
 } from "./maler.pricebook";
 
 export type VerputzMode = "off" | "instand10" | "instand50" | "neu";
@@ -125,7 +125,11 @@ function sumRoomItems(
   return round2(sum);
 }
 
-export function calcMalerParts(globalM2: number, s: MalerState) {
+export function calcMalerParts(
+  globalM2: number,
+  s: MalerState,
+  pb: MalerPriceBook,
+) {
   const m2 = clamp0(globalM2);
 
   // Bestand
@@ -270,6 +274,10 @@ export function calcMalerParts(globalM2: number, s: MalerState) {
   };
 }
 
-export function calcMalerTotal(globalM2: number, s: MalerState) {
-  return calcMalerParts(globalM2, s).total;
+export function calcMalerTotal(
+  globalM2: number,
+  s: MalerState,
+  pb: MalerPriceBook,
+) {
+  return calcMalerParts(globalM2, s, pb).total;
 }

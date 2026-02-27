@@ -1,10 +1,6 @@
 import Modal from "../../Modal";
-import {
-  BALKON_PRICEBOOK as pb,
-  clamp0,
-  formatEUR,
-  pickRangePrice,
-} from "./balkon.pricebook";
+import { clamp0, formatEUR, pickRangePrice } from "./balkon.pricebook";
+import type { BalkonPriceBook } from "./balkon.pricebook.adapter";
 import {
   calcBalkonParts,
   type BalkonState,
@@ -149,9 +145,23 @@ export default function BalkonModal(props: {
   value: BalkonState;
   onChange: (next: BalkonState) => void;
   onClose: () => void;
+  pricebook: BalkonPriceBook | null;
 }) {
+  const pb = props.pricebook;
+  if (!pb) {
+    return (
+      <Modal
+        open={props.open}
+        title="Balkon"
+        subtitle="Preisbuch wird geladen…"
+        onClose={props.onClose}
+      >
+        <div className="p-6 text-slate-300">Loading…</div>
+      </Modal>
+    );
+  }
   const s = props.value;
-  const parts = calcBalkonParts(s);
+  const parts = calcBalkonParts(s, pb);
   const m2 = clamp0(s.balkonM2);
 
   const priceForChoice = (choice: BalkonMainChoice) => {
@@ -204,9 +214,17 @@ export default function BalkonModal(props: {
   return (
     <Modal
       open={props.open}
-      title="Balkon"
-      subtitle="Sanierung, Abdichtung & Beläge"
+      title={pb.meta.title}
+      subtitle={pb.meta.subtitle}
       onClose={props.onClose}
+      headerRight={
+        <div className="text-right">
+          <div className="text-xs text-slate-400">Gesamt</div>
+          <div className="text-lg font-semibold text-emerald-400">
+            {formatEUR(parts.total)}
+          </div>
+        </div>
+      }
     >
       <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
         <div className="text-xs text-slate-400">Zusätzliche Anmerkung</div>
@@ -397,7 +415,7 @@ export default function BalkonModal(props: {
         </div>
 
         {/* Total */}
-        <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
+        {/* <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
           <div className="flex items-center justify-between">
             <div className="text-sm text-slate-300">Summe Balkon</div>
             <div className="text-lg font-semibold">
@@ -410,7 +428,7 @@ export default function BalkonModal(props: {
               ? ` + Aufzahlungen: ${formatEUR(parts.totalAufz)}`
               : ""}
           </div>
-        </div>
+        </div> */}
       </div>
     </Modal>
   );

@@ -1,5 +1,6 @@
 import Modal from "../../Modal";
-import { BODEN_PRICEBOOK as pb, clamp0, formatEUR } from "./boden.pricebook";
+import type { ReactNode } from "react";
+import { clamp0, formatEUR, type BodenPriceBook } from "./boden.pricebook";
 import { calcBodenParts, type BodenState } from "./boden.calc";
 import type { AbbruchState } from "../aabbruch/abbruch.calc";
 
@@ -31,7 +32,7 @@ function Card(props: {
   checked: boolean;
   price: number;
   onToggle: (v: boolean) => void;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
@@ -149,13 +150,27 @@ export default function BodenModal(props: {
   value: BodenState;
   onChange: (next: BodenState) => void;
   onClose: () => void;
-
+  pricebook: BodenPriceBook | null;
   abbruch: AbbruchState;
   onAbbruchChange: (next: AbbruchState) => void;
 }) {
+  const pb = props.pricebook;
+  if (!pb) {
+    return (
+      <Modal
+        open={props.open}
+        title="Bodenbeläge"
+        subtitle="Preisbuch wird geladen…"
+        onClose={props.onClose}
+      >
+        <div className="p-6 text-slate-300">Loading…</div>
+      </Modal>
+    );
+  }
+
   const m2 = clamp0(props.wohnflaecheM2);
   const s = props.value;
-  const parts = calcBodenParts(m2, s);
+  const parts = calcBodenParts(m2, s, pb);
 
   const abbruchBelagSelected = props.abbruch.belagMode !== "off";
 
@@ -237,6 +252,14 @@ Beim Akzeptieren wird "Abbruch Belag" (falls nicht ausgewählt) automatisch akti
       title="Bodenbeläge"
       subtitle={`Wohnfläche (global): ${m2} m²`}
       onClose={props.onClose}
+      headerRight={
+        <div className="text-right">
+          <div className="text-xs text-slate-400">Gesamt</div>
+          <div className="text-lg font-semibold text-emerald-400">
+            {formatEUR(parts.total)}
+          </div>
+        </div>
+      }
     >
       <div className="grid gap-5">
         {/* Note */}
@@ -373,7 +396,7 @@ Beim Akzeptieren wird "Abbruch Belag" (falls nicht ausgewählt) automatisch akti
           <div className="mt-4">
             <Card
               title={pb.aufz_antidroe.title}
-              description="Aufzahlung: 30% der Neuherstellung Laminat"
+              description={pb.aufz_antidroe.title}
               checked={s.antidroeNeuLaminatOn}
               price={parts.antidroeNeuLaminat}
               onToggle={(v) =>
@@ -542,14 +565,14 @@ Beim Akzeptieren wird "Abbruch Belag" (falls nicht ausgewählt) automatisch akti
         </Card>
 
         {/* Total */}
-        <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
+        {/* <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
           <div className="flex items-center justify-between">
             <div className="text-sm text-slate-300">Summe Bodenbeläge</div>
             <div className="text-lg font-semibold">
               {formatEUR(parts.total)}
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
     </Modal>
   );

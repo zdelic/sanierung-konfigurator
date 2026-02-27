@@ -1,11 +1,9 @@
 import Modal from "../../Modal";
-import {
-  TISCHLER_PRICEBOOK as pb,
-  clamp0,
-  formatEUR,
-} from "./tischler.pricebook";
+import { clamp0, formatEUR } from "./tischler.pricebook";
+import type { TischlerPriceBook } from "./tischler.pricebook";
 import { calcTischlerParts, type TischlerState } from "./tischler.calc";
 import type { AbbruchState } from "../aabbruch/abbruch.calc";
+import type { ReactNode } from "react";
 
 function Switch(props: { checked: boolean; onChange: (v: boolean) => void }) {
   return (
@@ -35,7 +33,7 @@ function Card(props: {
   checked: boolean;
   price: number;
   onToggle: (v: boolean) => void;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
@@ -50,11 +48,13 @@ function Card(props: {
             </div>
           ) : null}
         </div>
+
         <div className="flex items-center gap-3">
           <div className="text-sm font-semibold">{formatEUR(props.price)}</div>
           <Switch checked={props.checked} onChange={props.onToggle} />
         </div>
       </div>
+
       {props.checked ? <div className="mt-3">{props.children}</div> : null}
     </div>
   );
@@ -107,14 +107,28 @@ export default function TischlerModal(props: {
   value: TischlerState;
   onChange: (next: TischlerState) => void;
   onClose: () => void;
-
+  pricebook: TischlerPriceBook | null;
   // dependencies (Abbruch)
   abbruch: AbbruchState;
   onAbbruchChange: (next: AbbruchState) => void;
 }) {
   const m2 = clamp0(props.wohnflaecheM2);
   const s = props.value;
-  const parts = calcTischlerParts(m2, s);
+  const pb = props.pricebook;
+  if (!pb) {
+    return (
+      <Modal
+        open={props.open}
+        title="Tischler"
+        subtitle="Preisbuch wird geladen…"
+        onClose={props.onClose}
+      >
+        <div className="p-6 text-slate-300">Loading…</div>
+      </Modal>
+    );
+  }
+
+  const parts = calcTischlerParts(m2, s, pb);
 
   // Dependencies:
   // 1) Neu Eingangstüre -> Abbruch Eingangstüre samt Türblatt (abbruch.eingangstuer)
@@ -171,6 +185,14 @@ export default function TischlerModal(props: {
       title="Tischlerarbeiten"
       subtitle={`Wohnfläche (global): ${m2} m²`}
       onClose={props.onClose}
+      headerRight={
+        <div className="text-right">
+          <div className="text-xs text-slate-400">Gesamt</div>
+          <div className="text-lg font-semibold text-emerald-400">
+            {formatEUR(parts.total)}
+          </div>
+        </div>
+      }
     >
       <div className="grid gap-5">
         {/* Note */}
@@ -441,14 +463,14 @@ Beim Akzeptieren wird "Abbruch Innentürzarge samt Türblatt" (falls nicht ausge
         </div>
 
         {/* Total */}
-        <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
+        {/* <div className="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10">
           <div className="flex items-center justify-between">
             <div className="text-sm text-slate-300">Summe Tischlerarbeiten</div>
             <div className="text-lg font-semibold">
               {formatEUR(parts.total)}
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
     </Modal>
   );

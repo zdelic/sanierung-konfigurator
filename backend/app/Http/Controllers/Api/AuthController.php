@@ -22,8 +22,10 @@ class AuthController extends Controller
             'name' => $data['name'] ?? null,
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
+
         ]);
 
+        $user->assignRole('viewer'); // ili 'editor' ako želiš default editor
         // token auth (simple & scalable for APIs)
         $token = $user->createToken('api')->plainTextToken;
 
@@ -61,8 +63,12 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
+        $user = $request->user();
+
         return response()->json([
-            'user' => $request->user(),
+            'user' => $user,
+            'roles' => $user->getRoleNames(), // npr. ["admin"]
+            'permissions' => $user->getAllPermissions()->pluck('name'), // npr. ["pricebook.edit", ...]
         ]);
     }
 

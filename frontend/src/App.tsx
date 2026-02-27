@@ -4,6 +4,7 @@ import CalculatorLandingPage from "./pages/CalculatorLandingPage";
 import SanierungDashboardPage from "./pages/SanierungDashboardPage";
 import WizardPage from "./pages/WizardPage";
 import NotFoundPage from "./pages/NotFoundPage";
+import KalkulationenPage from "./pages/KalkulationenPage";
 
 export default function App() {
   return (
@@ -21,6 +22,14 @@ export default function App() {
         <Route path="/k/:type/wizard" element={<WizardPage />} />
 
         <Route path="*" element={<NotFoundPage />} />
+        <Route
+          path="/k/sanierung/kalkulationen"
+          element={<KalkulationenPage />}
+        />
+
+        {/* dashboard: new + edit */}
+        <Route path="/k/sanierung" element={<SanierungDashboardPage />} />
+        <Route path="/k/sanierung/:id" element={<SanierungDashboardPage />} />
       </Routes>
     </BrowserRouter>
   );
